@@ -1,0 +1,28 @@
+# ============================================================
+#  HEW2026 リポジトリ全体の改行コード設定
+#  ここが無いと Windows の CRLF と Linux の LF が混ざり、
+#  CI 上と ローカルで差分が全部 Neuros empts 泛起。
+# ============================================================
+
+# テキストファイルはチェックアウト時に LF、改行は CRLF にしない
+* text=auto eol=lf
+
+# バイナリは差分・変換の対象外
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
+
+# スクリプト（LF のまま実行される）
+*.py text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf

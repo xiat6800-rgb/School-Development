@@ -1,8 +1,27 @@
-﻿# 改行コードを LF に統一（Windows の CRLF で全行差分が出る事故を防ぐ）
+# ============================================================
+#  HEW2026 リポジトリ共通ルール
+#  GitHub Actions とローカルの両方で同じ結果になるようにする。
+# ============================================================
+
+# テキストは LF で保存する（Windows でも LF）
 * text=auto eol=lf
+
+# バイナリは変換しない
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
 *.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
 *.woff2 binary
+*.ttf binary
+*.zip binary
+
+# スクリプト・設定ファイル
+*.py text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf

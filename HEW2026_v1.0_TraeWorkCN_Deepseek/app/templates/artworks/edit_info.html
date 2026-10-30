@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field_errors %}
+
+{% block title %}出品情報の編集 — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">EDIT</p>
+    <h1>出品情報の編集</h1>
+    <p class="lead">タイトル・説明・タグを更新できます。絵そのものは変更できません。</p>
+  </div>
+</div>
+
+<div class="split-layout">
+  <section class="preview-panel">
+    <figure class="art-frame">
+      <img src="{{ url_for('artworks.image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+    </figure>
+    <p class="hint">
+      状態:
+      {% if artwork.status == 'draft' %}下書き{% elif artwork.status == 'listed' %}公開中{% elif artwork.status == 'sold' %}落札済み{% else %}取消{% endif %}
+    </p>
+  </section>
+
+  <section class="form-panel">
+    <form method="post" novalidate class="stack-form">
+      {{ form.hidden_tag() }}
+
+      <div class="field">
+        {{ form.title.label }}
+        {{ form.title(class="input", maxlength="200") }}
+        {{ field_errors(form.title) }}
+      </div>
+
+      <div class="field">
+        {{ form.description.label }}
+        {{ form.description(class="input textarea", rows="5", maxlength="2000") }}
+        {{ field_errors(form.description) }}
+      </div>
+
+      <div class="field">
+        <span class="label-text">タグ</span>
+        <div class="tag-choices">
+          {% for value, label in form.tags.choices %}
+            <label class="tag-choice">
+              <input type="checkbox" name="tags" value="{{ value }}"
+                {% if value in (form.tags.data or []) %}checked{% endif %}>
+              <span>{{ label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {{ field_errors(form.tags) }}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存する</button>
+        <a class="btn btn-ghost" href="{{ url_for('account.index', tab='drafts' if artwork.status == 'draft' else 'listings') }}">戻る</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

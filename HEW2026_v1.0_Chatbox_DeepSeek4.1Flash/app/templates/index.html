@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}ホーム{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">1日だけの、描いて競る場所。</p>
+    <h1>描いた線が、<br>誰かの部屋へ。</h1>
+    <p class="lead">
+      制限時間のなかでキャンバスに向かい、完成した作品をポイントで競りに出す。
+      落札された作品は、原寸 PNG と全レイヤー ZIP が落札者の手元に残ります。
+    </p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="{{ url_for('artworks.show_drawing_setup') }}">描きはじめる</a>
+      <a class="button button-ghost" href="{{ url_for('search.search_artworks') }}">作品をさがす</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <p class="panel-title">開催中のオークション</p>
+    <p class="panel-number">{{ auctions|length }}<span>件</span></p>
+    <p class="panel-note">入札は現在価格 +1pt から。上限額を決めて自動入札も使えます。</p>
+    <a class="panel-link" href="{{ url_for('points.show_bonus_points') if current_user.is_authenticated else url_for('auth.register') }}">
+      ボーナスポイントについて
+    </a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>開催中</h2>
+    <p class="section-note">終了日時で入札を締め切り、最高入札者が落札します。</p>
+  </div>
+
+  {% if auctions %}
+    <div class="card-grid">
+      {% for auction in auctions %}
+        <article class="auction-card">
+          <a class="card-image" href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+            {% if auction.artwork.image_path %}
+              <img src="{{ url_for('artworks.show_artwork_image', artwork_id=auction.artwork.id) }}"
+                   alt="{{ auction.artwork.title }}" loading="lazy">
+            {% else %}
+              <span class="image-placeholder">no image</span>
+            {% endif %}
+            <span class="state-chip" data-end-time="{{ auction.end_time.isoformat() }}Z">まもなく終了</span>
+          </a>
+          <div class="card-body">
+            <h3><a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">{{ auction.artwork.title or '無題' }}</a></h3>
+            <p class="card-meta">出品者 {{ auction.artwork.artist.disp_name }}</p>
+            <div class="price-row">
+              <span class="price">{{ auction.current_price|points }}<small>pt</small></span>
+              <span class="time-left" data-end-time="{{ auction.end_time.isoformat() }}Z"></span>
+            </div>
+            {% if auction.artwork.tags %}
+              <ul class="tag-list">
+                {% for tag in auction.artwork.tags[:3] %}<li>{{ tag.name }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">いま開催中のオークションはありません。最初の出品者になりませんか。</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>公開された作品</h2>
+    <p class="section-note">落札後も作品は公開されます。</p>
+  </div>
+  <div class="artwork-grid">
+    {% for artwork in artworks %}
+      <a class="artwork-tile" href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auction.id) if artwork.auction else url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}">
+        {% if artwork.image_path %}
+          <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}" loading="lazy">
+        {% else %}
+          <span class="image-placeholder">no image</span>
+        {% endif %}
+        <span class="tile-caption">{{ artwork.title or '無題' }}</span>
+      </a>
+    {% else %}
+      <p class="empty">まだ公開作品がありません。</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>タグからさがす</h2>
+    <p class="section-note">複数選ぶと AND 条件で絞り込みます。</p>
+  </div>
+  <ul class="tag-cloud">
+    {% for tag in tags %}
+      <li><a href="{{ url_for('search.search_artworks', tag=tag.id) }}">{{ tag.name }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+# ============================================================
+# 02 テストを回す — ここからが本当の CI
+#   置き場所: .github/workflows/ci.yml
+#
+#   01 との違い:
+#     - actions/checkout でコードを Runner に取ってくる（これが無いと空のディレクトリ）
+#     - actions/setup-python で Python のバージョンを固定する
+#     - pip install → pytest
+# ============================================================
+
+name: 02 CI
+
+on:
+  push:
+    branches: [main] # main への push だけ
+  pull_request: # PR はブランチ指定なしで全部
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # 無限に待たないための保険
+
+    steps:
+      # uses: 誰かが作ったアクションを使う（中身は再利用可能な処理の塊）
+      - name: コードを取ってくる
+        uses: actions/checkout@v4
+
+      # with: アクションへの引数
+      - name: Python をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13" # バージョンは必ず文字列で書く（3.10 が 3.1 になる事故を防ぐ）
+
+      - name: 依存をインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # run: シェルコマンド。1 行なら | 不要、複数行なら | （ブロックスカラー）
+      - name: テスト
+        run: pytest -q

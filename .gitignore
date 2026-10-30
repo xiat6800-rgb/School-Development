@@ -1,0 +1,41 @@
+# ============================================================
+#  HEW2026 リポジトリ共通の除外設定
+#  「うっかり秘密情報や生成物をコミットする」事故を防ぐ。
+# ============================================================
+
+# --- 秘密情報（絶対にコミットしない） ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- 実行時に生成されるデータ（DB・アップロード画像） ---
+instance/
+*.db
+*.sqlite3
+app/static/uploads/artworks/*
+!app/static/uploads/artworks/.gitkeep
+
+# --- Node / Cloudflare ---
+node_modules/
+.wrangler/
+.wrangler.toml.local
+
+# --- OS / エディタ ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

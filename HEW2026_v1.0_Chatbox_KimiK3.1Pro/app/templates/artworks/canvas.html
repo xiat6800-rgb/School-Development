@@ -1,0 +1,30 @@
+{% extends 'base.html' %}{% block title %}{{ artwork.title }} · Canvas{% endblock %}
+{% block content %}
+<section class="studio-shell" id="drawing-app">
+  <header class="studio-header"><div><p class="section-label">{{ '公開制作Canvas' if stream else '非公開Canvas' }} / Work {{ '%03d'|format(artwork.id) }}</p><h1>{{ artwork.title }}</h1></div><div class="drawing-clock"><span>描画残り</span><strong id="drawing-timer" data-end="{{ artwork.drawing_ends_at.isoformat() }}Z">--:--</strong><small>保存猶予は固定後60秒</small></div></header>
+  {% if stream %}<div class="stream-control-bar"><div><i class="live-dot {{ 'is-off' if stream.status!='live' }}"></i><strong>配信状態: {{ stream.status|status_jp }}</strong><a href="{{ url_for('streams.show_stream', stream_id=stream.id) }}" target="_blank" rel="noopener">公開ページを開く</a></div><div class="stream-buttons">{% if stream.status=='ready' %}<form method="post" action="{{ url_for('streams.start_stream_route', stream_id=stream.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-small" type="submit">配信開始</button></form>{% endif %}{% if stream.status=='live' %}<button class="button button-small button-quiet" id="pause-stream" type="button">一時中断</button>{% endif %}{% if stream.status=='paused' %}<button class="button button-small" id="resume-stream" type="button">配信へ復帰</button>{% endif %}{% if stream.status!='ended' %}<form method="post" action="{{ url_for('streams.end_stream_route', stream_id=stream.id) }}" data-confirm="配信を終了すると再開できません。終了しますか？"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button danger" type="submit">配信を終了</button></form>{% endif %}</div></div>{% endif %}
+  <div class="studio-layout">
+    <aside class="tool-rail" aria-label="描画ツール">
+      <div class="tool-group"><span class="tool-label">ペン</span><button class="tool-button is-active" data-tool="gpen" type="button" title="Gペン">G<span>Gペン</span></button><button class="tool-button" data-tool="round" type="button" title="丸ペン">丸<span>丸ペン</span></button><button class="tool-button" data-tool="blur" type="button" title="ぼかし">ぼ<span>ぼかし</span></button><button class="tool-button" data-tool="eraser" type="button" title="消しゴム">消<span>消しゴム</span></button></div>
+      <div class="tool-group"><label class="tool-label" for="brush-size">太さ <output id="size-output">12</output></label><input id="brush-size" type="range" min="1" max="100" value="12"><label class="tool-label" for="brush-opacity">不透明度 <output id="opacity-output">100%</output></label><input id="brush-opacity" type="range" min="5" max="100" value="100"></div>
+      <div class="tool-group"><span class="tool-label">色</span><input id="brush-color" type="color" value="#17243a" aria-label="ペンの色"><div class="color-swatches">{% for color in ['#17243a','#2457e6','#ed5b47','#f2c94c','#18856f','#ffffff'] %}<button type="button" data-color="{{ color }}" style="--swatch:{{ color }}" aria-label="{{ color }}"></button>{% endfor %}</div></div>
+      <div class="tool-group history-tools"><button id="undo" type="button" disabled>↶ 戻す</button><button id="redo" type="button" disabled>↷ やり直す</button></div>
+    </aside>
+    <div class="canvas-column"><div class="canvas-paper" id="canvas-paper"><div id="canvas-stack" aria-label="1,024×1,024pxの描画Canvas"></div><div class="canvas-freeze" id="canvas-freeze" hidden><strong>描画を固定しました</strong><span>加筆せず、このまま正式保存してください。</span></div></div><p class="canvas-help">タッチ・マウス・ペンに対応 / ペンを離すたびにこのブラウザへ一時保存</p><div id="save-status" class="save-status" role="status">正式保存すると加筆できなくなります。</div></div>
+    <aside class="layer-panel"><div class="panel-heading"><h2>レイヤー</h2><span><b id="layer-count">1</b>/10</span></div><div id="layer-list" class="layer-list"></div><div class="layer-actions"><button id="add-layer" type="button">＋ 追加</button><button id="delete-layer" type="button">− 削除</button><button id="layer-up" type="button">↑ 前面へ</button><button id="layer-down" type="button">↓ 背面へ</button></div><label class="layer-opacity">選択中の不透明度<input id="layer-opacity" type="range" min="0" max="100" value="100"></label><div class="studio-note"><strong>正式保存に含まれるもの</strong><p>合成PNG・全レイヤーPNG・表示状態と不透明度。非表示レイヤーも落札者へ渡します。Undo履歴は含みません。</p></div></aside>
+  </div>
+  <div class="studio-savebar"><a class="button button-quiet" id="download-local" href="#" download="HEW-work-{{ artwork.id }}.png" hidden>固定画像を端末保存</a><span>保存先: 自分の下書き</span><button class="button" id="finish-save" type="button">完成して正式保存</button></div>
+</section>
+<script>
+window.DRAW_CONFIG = {{ {
+  'artworkId': artwork.id,
+  'drawingEndsAt': artwork.drawing_ends_at.isoformat() ~ 'Z',
+  'finishedAt': artwork.finished_at.isoformat() ~ 'Z' if artwork.finished_at else none,
+  'saved': artwork.is_saved,
+  'finishUrl': url_for('artworks.finish_drawing', artwork_id=artwork.id),
+  'saveUrl': url_for('artworks.save_draft', artwork_id=artwork.id),
+  'csrfToken': csrf_token(),
+  'stream': {'id': stream.id, 'status': stream.status, 'previewUrl': url_for('streams.upload_preview', stream_id=stream.id), 'heartbeatUrl': url_for('streams.heartbeat', stream_id=stream.id), 'pauseUrl': url_for('streams.pause_stream_route', stream_id=stream.id), 'resumeUrl': url_for('streams.resume_stream_route', stream_id=stream.id)} if stream else none
+} | tojson }};
+</script>
+{% endblock %}{% block scripts %}<script src="{{ url_for('static', filename='js/canvas.js') }}" defer></script>{% endblock %}

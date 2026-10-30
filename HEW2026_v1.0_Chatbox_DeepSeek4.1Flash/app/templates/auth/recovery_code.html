@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}復旧コード{% endblock %}
+
+{% block content %}
+<section class="narrow">
+  {% if is_new_account %}
+    <p class="eyebrow">登録が完了しました</p>
+    <h1>復旧コードを保管してください</h1>
+    <p class="muted">このコードは一度しか表示されません。パスワードを忘れたときの唯一の復旧手段です。</p>
+  {% else %}
+    <p class="eyebrow">再発行しました</p>
+    <h1>新しい復旧コード</h1>
+    <p class="muted">以前のコードは無効になりました。このコードは一度しか表示されません。</p>
+  {% endif %}
+
+  <div class="recovery-code">
+    <code>{{ recovery_code }}</code>
+  </div>
+
+  <p class="warn-note">
+    パスワードと復旧コードの両方を失うと復旧できません。紙に書き留めるか、パスワード管理ツールへ保存してください。
+  </p>
+
+  <p>
+    <a class="button button-primary" href="{{ url_for('main.index') }}">ホームへ進む</a>
+    <a class="button button-ghost" href="{{ url_for('artworks.show_drawing_setup') }}">描きはじめる</a>
+  </p>
+</section>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}ボーナスポイント — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">BONUS</p>
+    <h1>ボーナスポイント</h1>
+    <p class="lead">登録・初出品・描画などの操作に応じて付与されます。そのまま入札に使えます。</p>
+  </div>
+  <div class="head-note">
+    <span class="note-strong">残高</span>
+    <span>{{ "{:,}".format(current_user.point_balance) }}pt</span>
+  </div>
+</div>
+
+<div class="bonus-grid">
+  <article class="bonus-card">
+    <span class="flow-number">01</span>
+    <h2>新規登録</h2>
+    <p class="bonus-amount">{{ "{:,}".format(signup_points) }}<small>pt</small></p>
+    <p class="hint">登録時に1回だけ付与されます。</p>
+  </article>
+
+  <article class="bonus-card">
+    <span class="flow-number">02</span>
+    <h2>初出品</h2>
+    <p class="bonus-amount">{{ "{:,}".format(listing_points) }}<small>pt</small></p>
+    <p class="hint">はじめて作品を出品したときに付与されます。</p>
+  </article>
+
+  <article class="bonus-card">
+    <span class="flow-number">03</span>
+    <h2>絵を描く</h2>
+    <p class="bonus-amount">{{ "{:,}".format(draw_points) }}<small>pt</small></p>
+    <p class="hint">下書き保存ごとに付与。残り {{ remaining_times }} / {{ draw_max_times }} 回。</p>
+  </article>
+</div>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">HISTORY</p>
+      <h2>付与履歴</h2>
+    </div>
+  </div>
+
+  {% if history %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>日時</th><th>付与</th><th>取引後残高</th><th>関連</th></tr>
+        </thead>
+        <tbody>
+          {% for transaction in history %}
+            <tr>
+              <td>{{ transaction.created_at|jst }}</td>
+              <td class="price-cell">+{{ "{:,}".format(transaction.amount) }}pt</td>
+              <td>{{ "{:,}".format(transaction.balance_after) }}pt</td>
+              <td>
+                {% if transaction.auction %}
+                  <a class="text-link" href="{{ url_for('auctions.detail', auction_id=transaction.auction.id) }}">オークション</a>
+                {% else %}-{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">付与履歴はまだありません。</p>
+    </div>
+  {% endif %}
+</section>
+
+<div class="callout">
+  Ver0.5 では課金・決済を行いません。チャージ画面は遷移先のみの用意です。
+  <a class="text-link" href="{{ url_for('points.charge') }}">チャージ画面へ</a>
+</div>
+{% endblock %}

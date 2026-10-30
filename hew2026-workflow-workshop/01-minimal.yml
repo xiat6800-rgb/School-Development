@@ -1,0 +1,23 @@
+# ============================================================
+# 01 最小 workflow — 先让 GitHub 跑起来一件事
+#   置き場所: .github/workflows/01-minimal.yml
+#   拡張子は .yml か .yaml。それ以外は無視される。
+# ============================================================
+
+# workflow の名前。Actions タブに出るタイトル。
+name: 01 Hello
+# いつ動かすか。ここが無いと workflow は永遠に動かない。
+on:
+  push: # どのブランチでも push されたら
+  workflow_dispatch: # 手動実行ボタンを出す（デバッグ用に必ず付ける）
+# 何をやるか。jobs の下に「ジョブ」を並べる。ジョブは既定で並列実行。
+jobs:
+  hello: # ジョブの ID（英数字と - _ のみ。日本語不可）
+    name: 挨拶する # 画面に出る表示名
+    runs-on: ubuntu-latest # どの Runner（仮想マシン）で動かすか
+    steps: # 上から順に実行される
+      - name: あいさつ
+        run: echo "Hello from GitHub Actions"
+
+      - name: Runner の Python を確認
+        run: python3 --version

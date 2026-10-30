@@ -1,0 +1,48 @@
+{% macro artwork_card(artwork) %}
+  {% if artwork.auction %}
+  <a class="art-card" href="{{ url_for('auctions.detail', auction_id=artwork.auction.id) }}">
+  {% else %}
+  <div class="art-card">
+  {% endif %}
+    <div class="art-card-media">
+      <img src="{{ url_for('artworks.image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}" loading="lazy">
+      {% if artwork.status == 'sold' %}
+        <span class="badge badge-sold">落札</span>
+      {% elif artwork.auction and artwork.auction.status == 'active' %}
+        <span class="badge badge-live">開催中</span>
+      {% elif artwork.auction %}
+        <span class="badge">終了</span>
+      {% endif %}
+    </div>
+    <div class="art-card-body">
+      <h3>{{ artwork.title }}</h3>
+      <div class="art-card-meta">
+        <span class="price">
+          {{ "{:,}".format(artwork.auction.current_price if artwork.auction else 0) }}<small>pt</small>
+        </span>
+        <span class="seller">{{ artwork.seller.disp_name }}</span>
+      </div>
+      {% if artwork.tags %}
+        <div class="tag-row">
+          {% for tag in artwork.tags %}<span class="tag">{{ tag.name }}</span>{% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% if artwork.auction %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+
+{% macro auction_status(auction) %}
+  {% if auction.status == 'active' %}
+    <span class="badge badge-live">開催中</span>
+  {% elif auction.status == 'ended' %}
+    <span class="badge">終了</span>
+  {% else %}
+    <span class="badge">取消</span>
+  {% endif %}
+{% endmacro %}
+
+{% macro field_errors(field) %}
+  {% for error in field.errors %}
+    <p class="field-error">{{ error }}</p>
+  {% endfor %}
+{% endmacro %}

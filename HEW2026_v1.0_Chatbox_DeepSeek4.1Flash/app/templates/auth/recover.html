@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}パスワード再設定{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card">
+    <p class="eyebrow">復旧コードをお持ちの方</p>
+    <h1>パスワードを再設定する</h1>
+    <p class="muted">ユーザー名と復旧コードを入力してください。使用したコードは無効になります。</p>
+
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>
+        ユーザー名
+        <input type="text" name="username" value="{{ form.username }}" required>
+      </label>
+      <label>
+        復旧コード（XXXX-XXXX-XXXX）
+        <input type="text" name="recovery_code" required autocomplete="off">
+      </label>
+      <label>
+        新しいパスワード（8文字以上）
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <label>
+        新しいパスワード（確認）
+        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password">
+      </label>
+      <button type="submit" class="button button-primary">パスワードを再設定する</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

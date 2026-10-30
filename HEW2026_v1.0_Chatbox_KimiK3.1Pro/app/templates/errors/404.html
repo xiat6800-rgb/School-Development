@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block title %}見つかりません{% endblock %}{% block content %}<section class="error-page"><strong>404</strong><h1>このページは見つかりません。</h1><p>非公開の作品か、URLが変わった可能性があります。</p><a class="button" href="{{ url_for('main.index') }}">公開作品を見る</a></section>{% endblock %}

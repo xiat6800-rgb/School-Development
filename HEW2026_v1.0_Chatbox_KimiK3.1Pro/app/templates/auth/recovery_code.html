@@ -1,0 +1,3 @@
+{% extends 'base.html' %}{% block title %}復旧コードを保存{% endblock %}{% block content %}
+<section class="recovery-page"><div class="recovery-sheet"><p class="section-label">{{ '登録が完了しました' if first else '復旧コードを再発行しました' }}</p><h1>このコードを、今保存してください。</h1><p>この画面を離れるとコードは再表示できません。サーバーにはハッシュだけを保存しています。</p><code id="recovery-code">{{ recovery_code }}</code><button class="button button-quiet" type="button" data-copy="#recovery-code">コードをコピー</button><div class="warning-note"><strong>両方を失うと復旧できません</strong>パスワード再設定に使用すると、このコードは無効になります。再発行した場合も旧コードは無効です。</div><a class="button" href="{{ url_for('account.show_account') }}">保存しました。アカウントへ</a></div></section>
+{% endblock %}

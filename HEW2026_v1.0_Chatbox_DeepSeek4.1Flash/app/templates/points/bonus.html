@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}ボーナスポイント{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">ボーナス</p>
+      <h1>条件を満たすと自動で付与</h1>
+    </div>
+    <div class="balance-block">
+      <span class="balance-label">所持ポイント</span>
+      <span class="balance-value">{{ balance|points }}<small>pt</small></span>
+    </div>
+  </div>
+
+  <p class="lead">
+    受け取り操作は不要です。条件を満たした時点で残高へ反映され、そのまま入札に使えます。
+    付与量と条件は仮データであり、今後変更する可能性があります。
+  </p>
+
+  <div class="condition-grid">
+    {% for condition in conditions %}
+      <article class="condition-card{% if condition.type in granted_types %} is-granted{% endif %}">
+        <p class="condition-label">{{ condition.label }}</p>
+        <p class="condition-amount">+{{ condition.amount|points }}<small>pt</small></p>
+        <p class="muted small">{{ condition.limit }}</p>
+        <p class="condition-state">{{ '獲得済み' if condition.type in granted_types else '未獲得' }}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>獲得履歴</h2>
+  </div>
+  {% if bonuses %}
+    <table class="data-table">
+      <thead><tr><th>日時</th><th>種別</th><th>ポイント</th></tr></thead>
+      <tbody>
+        {% for bonus in bonuses %}
+          <tr>
+            <td>{{ bonus.created_at|jst }}</td>
+            <td>{{ bonus.bonus_type }}</td>
+            <td class="plus">+{{ bonus.amount|points }}pt</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">まだ獲得していません。</p>
+  {% endif %}
+</section>
+{% endblock %}

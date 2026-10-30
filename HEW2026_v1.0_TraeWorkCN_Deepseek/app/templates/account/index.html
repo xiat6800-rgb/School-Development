@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% from "_macros.html" import artwork_card %}
+
+{% block title %}アカウント — HEW{% endblock %}
+
+{% block content %}
+<div class="account-head">
+  <div class="account-profile">
+    <p class="eyebrow">ACCOUNT</p>
+    <h1>{{ current_user.disp_name }}</h1>
+    <p class="hint">@{{ current_user.username }} / {{ current_user.email }}</p>
+  </div>
+
+  <div class="account-balance">
+    <span class="price-label">ポイント残高</span>
+    <strong>{{ "{:,}".format(current_user.point_balance) }}<small>pt</small></strong>
+    <div class="balance-actions">
+      <a class="text-link" href="{{ url_for('points.bonus') }}">ボーナス</a>
+      <a class="text-link" href="{{ url_for('points.charge') }}">チャージ</a>
+    </div>
+  </div>
+</div>
+
+<details class="profile-edit">
+  <summary>表示名を変更する</summary>
+  <form method="post" action="{{ url_for('account.update_profile') }}" class="inline-edit-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="sr-only" for="disp_name">表示名</label>
+    <input id="disp_name" name="disp_name" class="input" maxlength="50" value="{{ current_user.disp_name }}" required>
+    <button type="submit" class="btn btn-small btn-primary">保存</button>
+  </form>
+</details>
+
+<nav class="tab-nav" aria-label="アカウント内メニュー">
+  {% set tabs = [
+    ('drafts', '下書き'),
+    ('listings', '出品中の作品'),
+    ('favorites_artworks', '作品お気に入り'),
+    ('favorites_auctions', 'オークションお気に入り'),
+    ('auto_bids', '自動入札'),
+    ('wallet', 'ポイント履歴')
+  ] %}
+  {% for key, label in tabs %}
+    <a class="tab-link {% if tab == key %}is-active{% endif %}"
+       href="{{ url_for('account.index', tab=key) }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if tab == 'drafts' %}
+  {% if drafts %}
+    <div class="draft-list">
+      {% for artwork in drafts %}
+        <article class="draft-item">
+          <img class="draft-thumb" src="{{ url_for('artworks.image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+          <div class="draft-body">
+            <h2>{{ artwork.title }}</h2>
+            <p class="hint">下書き / {{ artwork.created_at|jst }}</p>
+            <p class="hint">保存後は加筆できません。出品情報だけ編集できます。</p>
+          </div>
+          <div class="draft-actions">
+            <a class="btn btn-small btn-primary" href="{{ url_for('artworks.listing', artwork_id=artwork.id) }}">出品設定</a>
+            <a class="btn btn-small btn-ghost" href="{{ url_for('artworks.edit_info', artwork_id=artwork.id) }}">情報を編集</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">下書きはありません。</p>
+      <p>絵を描いて保存すると、ここから出品できます。</p>
+      <a class="btn btn-primary" href="{{ url_for('artworks.draw') }}">絵を描く</a>
+    </div>
+  {% endif %}
+
+{% elif tab == 'listings' %}
+  {% if listings %}
+    <div class="draft-list">
+      {% for artwork in listings %}
+        <article class="draft-item">
+          <img class="draft-thumb" src="{{ url_for('artworks.image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+          <div class="draft-body">
+            <h2>{{ artwork.title }}</h2>
+            <p class="hint">
+              {% if artwork.status == 'listed' %}公開中{% elif artwork.status == 'sold' %}落札済み{% else %}{{ artwork.status }}{% endif %}
+              {% if artwork.auction %} / 現在価格 {{ "{:,}".format(artwork.auction.current_price) }}pt{% endif %}
+            </p>
+            {% if artwork.auction %}
+              <p class="hint">
+                {{ artwork.auction.status }}
+                / 終了 {{ artwork.auction.end_time|jst }}
+              </p>
+            {% endif %}
+          </div>
+          <div class="draft-actions">
+            {% if artwork.auction %}
+              <a class="btn btn-small btn-primary" href="{{ url_for('auctions.detail', auction_id=artwork.auction.id) }}">オークションを見る</a>
+            {% endif %}
+            {% if artwork.status == 'listed' %}
+              <a class="btn btn-small btn-ghost" href="{{ url_for('artworks.edit_info', artwork_id=artwork.id) }}">情報を編集</a>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">出品中の作品はありません。</p>
+      <p>下書きから出品設定へ進んでください。</p>
+    </div>
+  {% endif %}
+
+{% elif tab == 'favorites_artworks' %}
+  {% if favorite_artworks %}
+    <div class="art-grid">
+      {% for bookmark in favorite_artworks %}{{ artwork_card(bookmark.artwork) }}{% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">作品のお気に入りはまだありません。</p>
+      <p>商品詳細画面から作品を登録できます。</p>
+    </div>
+  {% endif %}
+
+{% elif tab == 'favorites_auctions' %}
+  {% if favorite_auctions %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>作品</th><th>現在価格</th><th>状態</th><th>終了日時</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for bookmark in favorite_auctions %}
+            <tr>
+              <td>{{ bookmark.auction.artwork.title }}</td>
+              <td class="price-cell">{{ "{:,}".format(bookmark.auction.current_price) }}pt</td>
+              <td>{{ bookmark.auction.status }}</td>
+              <td>{{ bookmark.auction.end_time|jst }}</td>
+              <td><a class="text-link" href="{{ url_for('auctions.detail', auction_id=bookmark.auction.id) }}">開く</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">オークションのお気に入りはまだありません。</p>
+      <p>商品詳細画面から登録できます。</p>
+    </div>
+  {% endif %}
+
+{% elif tab == 'auto_bids' %}
+  {% if auto_bids %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>作品</th><th>上限額</th><th>状態</th><th>設定日時</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for setting in auto_bids %}
+            <tr>
+              <td>
+                {% if setting.auction %}
+                  <a class="text-link" href="{{ url_for('auctions.detail', auction_id=setting.auction.id) }}">
+                    {{ setting.auction.artwork.title }}
+                  </a>
+                {% else %}-{% endif %}
+              </td>
+              <td class="price-cell">{{ "{:,}".format(setting.max_amount) }}pt</td>
+              <td>{% if setting.is_active %}有効{% else %}停止{% endif %}</td>
+              <td>{{ setting.created_at|jst }}</td>
+              <td>
+                {% if setting.is_active %}
+                  <form method="post" action="{{ url_for('account.stop_auto_bid', setting_id=setting.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-small btn-ghost">停止する</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">自動入札の設定はありません。</p>
+      <p>商品詳細画面で上限額を設定できます。</p>
+    </div>
+  {% endif %}
+
+{% else %}
+  {% if wallet %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>日時</th><th>種別</th><th>増減</th><th>取引後残高</th><th>関連</th></tr>
+        </thead>
+        <tbody>
+          {% for transaction in wallet %}
+            <tr>
+              <td>{{ transaction.created_at|jst }}</td>
+              <td>{{ {'bonus': 'ボーナス', 'bid': '入札', 'refund': '返却', 'charge': 'チャージ', 'purchase': '購入'}.get(transaction.transaction_type, transaction.transaction_type) }}</td>
+              <td class="price-cell {% if transaction.amount < 0 %}is-negative{% endif %}">
+                {% if transaction.amount > 0 %}+{% endif %}{{ "{:,}".format(transaction.amount) }}pt
+              </td>
+              <td>{{ "{:,}".format(transaction.balance_after) }}pt</td>
+              <td>
+                {% if transaction.auction %}
+                  <a class="text-link" href="{{ url_for('auctions.detail', auction_id=transaction.auction.id) }}">オークション</a>
+                {% else %}-{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">ポイント履歴はありません。</p>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

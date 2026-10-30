@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}描画{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block content %}
+<section
+  class="draw-page"
+  id="draw-app"
+  data-artwork-id="{{ artwork.id }}"
+  data-canvas-size="{{ canvas_size }}"
+  data-max-layers="{{ max_layers }}"
+  data-drawing-deadline="{{ drawing_deadline_iso }}"
+  data-save-deadline="{{ save_deadline_iso }}"
+  data-now="{{ now_iso }}"
+  data-save-url="{{ url_for('artworks.save_draft', artwork_id=artwork.id) }}"
+  data-draft-url="{{ url_for('artworks.show_draft', artwork_id=artwork.id) }}"
+  data-grace-expired="{{ '1' if grace_expired else '0' }}"
+>
+  <header class="draw-header">
+    <div>
+      <p class="eyebrow">制作中 — {{ artwork.drawing_duration_seconds }}秒</p>
+      <h1 id="draw-title">キャンバス</h1>
+    </div>
+    <div class="timer-block">
+      <span class="timer-label" id="timer-label">残り時間</span>
+      <span class="timer" id="timer" data-deadline="{{ drawing_deadline_iso }}">{{ drawing_seconds_left }}</span>
+      <span class="timer-sub" id="save-timer" hidden>保存の猶予 <b>{{ save_seconds_left }}</b> 秒</span>
+    </div>
+  </header>
+
+  <p class="flash flash-warning" id="deadline-notice" {% if not grace_expired %}hidden{% endif %}>
+    保存の猶予（60秒）を過ぎました。この作品は出品できません。端末への保存のみ可能です。
+  </p>
+
+  <div class="draw-layout">
+    <aside class="tool-panel">
+      <div class="tool-group">
+        <span class="tool-label">ペン</span>
+        <div class="segmented" role="group">
+          <button type="button" class="seg is-active" data-tool="pen">ペン</button>
+          <button type="button" class="seg" data-tool="eraser">消しゴム</button>
+        </div>
+        <label class="range-row">
+          太さ <input type="range" id="pen-size" min="1" max="60" value="6">
+          <span id="pen-size-value">6</span>
+        </label>
+        <div class="swatches" id="swatches">
+          {% for color in ['#141821', '#e0533d', '#f2b544', '#4f8a5b', '#3f6fa8', '#8b5aa8', '#ffffff', '#9aa0ad'] %}
+            <button type="button" class="swatch{% if loop.first %} is-active{% endif %}"
+                    data-color="{{ color }}" style="--swatch: {{ color }}" aria-label="{{ color }}"></button>
+          {% endfor %}
+        </div>
+        <label class="range-row">
+          不透明度 <input type="range" id="pen-opacity" min="10" max="100" value="100">
+          <span id="pen-opacity-value">100</span>
+        </label>
+      </div>
+
+      <div class="tool-group">
+        <span class="tool-label">操作</span>
+        <div class="button-row">
+          <button type="button" class="button button-small button-ghost" id="undo">元に戻す</button>
+          <button type="button" class="button button-small button-ghost" id="redo">やり直す</button>
+        </div>
+        <p class="muted small" id="history-note">履歴 0 / 50</p>
+      </div>
+
+      <div class="tool-group">
+        <span class="tool-label">レイヤー <b id="layer-count">1</b>/{{ max_layers }}</span>
+        <div class="layer-list" id="layer-list"></div>
+        <div class="button-row">
+          <button type="button" class="button button-small" id="add-layer">追加</button>
+          <button type="button" class="button button-small button-ghost" id="remove-layer">削除</button>
+        </div>
+        <label class="range-row">
+          レイヤー不透明度 <input type="range" id="layer-opacity" min="0" max="100" value="100">
+          <span id="layer-opacity-value">100</span>
+        </label>
+      </div>
+
+      <div class="tool-group">
+        <span class="tool-label">保存</span>
+        <button type="button" class="button button-primary button-block" id="finish">完成する</button>
+        <p class="muted small">完成後も60秒以内は再送できます。</p>
+        <p class="save-state" id="save-state" role="status"></p>
+      </div>
+    </aside>
+
+    <div class="board">
+      <div class="canvas-frame">
+        <canvas id="board" width="{{ canvas_size }}" height="{{ canvas_size }}"></canvas>
+        <div class="canvas-lock" id="canvas-lock" hidden>
+          <p>描画を終了しました</p>
+        </div>
+      </div>
+      <p class="muted small">
+        ペンを離した時点でレイヤー構成と履歴をこのブラウザに一時保存します（同じブラウザでのみ復元）。
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/canvas.js') }}" defer></script>
+{% endblock %}

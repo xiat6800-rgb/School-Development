@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — HEW{% endblock %}
+
+{% block content %}
+<div class="center-card error-card">
+  <p class="eyebrow">ERROR</p>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <a class="btn btn-primary" href="{{ url_for('main.home') }}">ホームへ戻る</a>
+</div>
+{% endblock %}

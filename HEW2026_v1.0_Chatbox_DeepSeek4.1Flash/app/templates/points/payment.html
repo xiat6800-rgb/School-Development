@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}支払い{% endblock %}
+
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">支払い</p>
+  <h1>決済は利用できません</h1>
+  <p class="lead">
+    この画面は遷移先として用意しているものです。クレジットカード情報の入力欄や決済処理は実装していません。
+  </p>
+  <p class="muted">
+    将来のバージョンで課金を実装する場合も、カード情報はアプリのサーバーへ保存しません。
+  </p>
+  <p><a class="button button-primary" href="{{ url_for('points.show_bonus_points') }}">ボーナスでポイントを増やす</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}新規登録{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+  <div class="auth-card">
+    <p class="eyebrow">はじめての方</p>
+    <h1>アカウントを作る</h1>
+    <p class="muted">
+      ユーザー名とパスワードだけで登録します。メールアドレスは使いません。
+      登録直後に復旧コードを一度だけ表示します。
+    </p>
+
+    <form method="post" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>
+        ユーザー名（英数字とアンダースコア3〜20文字）
+        <input type="text" name="username" value="{{ form.username }}" required
+               pattern="[A-Za-z0-9_]{3,20}" autocomplete="username">
+      </label>
+      <label>
+        パスワード（8文字以上）
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <label>
+        パスワード（確認）
+        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password">
+      </label>
+      <button type="submit" class="button button-primary">登録して復旧コードを受け取る</button>
+    </form>
+
+    <p class="auth-alt">すでにアカウントがある方は <a href="{{ url_for('auth.login') }}">ログイン</a></p>
+  </div>
+
+  <aside class="auth-aside">
+    <h2>登録すると</h2>
+    <ul class="bullet-list">
+      <li>1,000pt の登録ボーナス（入札に使えます）</li>
+      <li>10秒・30秒・1分・5分から選べる描画</li>
+      <li>下書き保存と、任意のタイミングでの出品</li>
+    </ul>
+    <p class="warn-note">
+      パスワードと復旧コードの両方を失うと復旧できません。復旧コードは必ず保管してください。
+    </p>
+  </aside>
+</section>
+{% endblock %}

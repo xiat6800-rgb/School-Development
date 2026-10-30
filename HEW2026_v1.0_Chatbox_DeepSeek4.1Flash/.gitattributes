@@ -1,0 +1,8 @@
+﻿# 改行コードを LF に統一（Windows の CRLF で全行差分が出る事故を防ぐ）
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff2 binary

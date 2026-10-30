@@ -1,0 +1,21 @@
+# 添付しないもの（要件定義書 7.3 / 環境設定）
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# 実行時データ
+instance/
+app/uploads/artworks/*.png
+*.db
+*.sqlite3
+
+# OS / エディタ
+.DS_Store
+Thumbs.db

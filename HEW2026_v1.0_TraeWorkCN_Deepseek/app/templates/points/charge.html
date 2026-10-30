@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}チャージ — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">CHARGE</p>
+    <h1>チャージ</h1>
+    <p class="lead">ポイント残高を確認し、支払い画面へ進みます。</p>
+  </div>
+</div>
+
+<div class="center-card">
+  <div class="balance-display">
+    <span class="price-label">現在の残高</span>
+    <strong>{{ "{:,}".format(current_user.point_balance) }}<small>pt</small></strong>
+  </div>
+
+  <div class="notice notice-warn">
+    Ver0.5 では課金機能を提供していません。Stripe などの決済連携、実際の支払い、
+    決済によるポイント加算は行いません。
+  </div>
+
+  <p class="hint">
+    ポイントは登録・初出品・描画のボーナスで獲得できます。
+    <a class="text-link" href="{{ url_for('points.bonus') }}">ボーナス画面を見る</a>
+  </p>
+
+  <a class="btn btn-ghost btn-block" href="{{ url_for('points.payment') }}">支払い画面へ進む（Ver0.5 では利用できません）</a>
+</div>
+{% endblock %}

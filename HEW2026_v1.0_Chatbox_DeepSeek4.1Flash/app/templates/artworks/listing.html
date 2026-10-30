@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}出品設定{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">出品設定</p>
+      <h1>{{ artwork.title or '無題' }}</h1>
+    </div>
+    <a class="button button-ghost" href="{{ url_for('artworks.show_draft', artwork_id=artwork.id) }}">下書きへ戻る</a>
+  </div>
+
+  <div class="split">
+    <div class="preview-pane">
+      {% if artwork.image_path %}
+        <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+      {% endif %}
+    </div>
+
+    <div class="detail-pane">
+      <form method="post" action="{{ url_for('artworks.publish_auction', artwork_id=artwork.id) }}" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label>
+          タイトル（必須・200文字以内）
+          <input type="text" name="title" value="{{ artwork.title }}" maxlength="200" required>
+        </label>
+
+        <label>
+          説明（任意）
+          <textarea name="description" rows="4" maxlength="2000">{{ artwork.description or '' }}</textarea>
+        </label>
+
+        <fieldset class="fieldset">
+          <legend>タグ（複数選択・AND 検索の対象）</legend>
+          <div class="checkbox-grid">
+            {% for tag in tags %}
+              <label class="check">
+                <input type="checkbox" name="tag_ids" value="{{ tag.id }}"
+                       {% if tag in artwork.tags %}checked{% endif %}>
+                <span>{{ tag.name }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <label>
+          開始価格（0以上の整数 pt）
+          <input type="number" name="start_price" min="0" step="1" value="0" required>
+        </label>
+
+        <fieldset class="fieldset">
+          <legend>開催時間（初期値 {{ default_minutes }}分）</legend>
+          <div class="radio-row">
+            {% for minutes in durations %}
+              <label class="check">
+                <input type="radio" name="duration_minutes" value="{{ minutes }}"
+                       {% if minutes == default_minutes %}checked{% endif %}>
+                <span>{{ minutes }}分</span>
+              </label>
+            {% endfor %}
+          </div>
+          {% if event_ends_at %}
+            <p class="muted small">イベント終了（{{ event_ends_at|jst }}）までに収まる時間だけ選べます。</p>
+          {% endif %}
+        </fieldset>
+
+        <ul class="bullet-list small">
+          <li>出品すると即時にオークションが始まり、取り消しはできません（Ver0.5）。</li>
+          <li>原寸 PNG と全レイヤー ZIP（非表示レイヤーを含む）が落札者へ渡ります。編集履歴は渡りません。</li>
+          <li>出品後の画像の差し替え・再編集はできません。</li>
+          <li>最低落札価格は使いません。希望額は開始価格で設定してください。</li>
+        </ul>
+
+        <button type="submit" class="button button-primary">出品してオークションを開始する</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

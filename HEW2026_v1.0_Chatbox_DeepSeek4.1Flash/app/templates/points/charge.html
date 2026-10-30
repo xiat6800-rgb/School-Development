@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}チャージ{% endblock %}
+
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">チャージ</p>
+  <h1>ポイントを追加する</h1>
+
+  <div class="balance-block large">
+    <span class="balance-label">現在の残高</span>
+    <span class="balance-value">{{ balance|points }}<small>pt</small></span>
+  </div>
+
+  <p class="flash flash-warning">
+    このバージョンでは課金機能を提供していません。Stripe との通信・決済・チャージによる残高加算は行いません。
+  </p>
+
+  <p class="lead">
+    ポイントは、登録・初出品・作品の正式保存などのボーナスで増えます。
+    支払い画面は遷移先としてのみ用意しています。
+  </p>
+
+  <div class="button-row">
+    <a class="button button-primary" href="{{ url_for('points.show_bonus_points') }}">ボーナスの条件を見る</a>
+    <a class="button button-ghost" href="{{ url_for('points.show_payment') }}">支払い画面（遷移先のみ）</a>
+  </div>
+</section>
+{% endblock %}

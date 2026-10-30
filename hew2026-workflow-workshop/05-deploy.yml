@@ -1,0 +1,60 @@
+# ============================================================
+# 05 デプロイ（CD）— 緑のときだけ本番へ
+#   置き場所: .github/workflows/ci.yml
+#
+#   05 で足すもの:
+#     - needs（前のジョブが緑でないと動かない）
+#     - if（イベントとブランチで条件分岐）
+#     - environment（本番環境。承認制にもできる）
+#     - secrets（暗号化された変数。ログでは自動で *** に伏字される）
+# ============================================================
+
+name: 05 CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - run: pytest -q
+
+  deploy:
+    name: Deploy to production
+    # needs: test が成功しないと deploy は始まらない。これが CD の心臓部。
+    needs: [test]
+    # if: 条件。PR ではデプロイしない / main への push のときだけ。
+    # 注意: secrets は if の中では使えない（評価タイミングが違う）。
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # environment を付けると GitHub の Environments と紐づく。
+    # ここで「承認が必要」に設定すれば、人の OK が出るまで止まる（＝継続的デリバリー）。
+    environment:
+      name: production
+      url: https://example.com
+    steps:
+      - name: デプロイフックを叩く
+        # secrets は Settings → Secrets and variables → Actions で登録した名前。
+        # 未設定なら空文字になるので、下の if でスキップ判定している。
+        env:
+          HOOK: ${{ secrets.DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "DEPLOY_HOOK_URL が未設定のためスキップします"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK"

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}下書きの管理{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">下書き — {{ artwork.drawing_duration_seconds }}秒で制作</p>
+      <h1>{{ artwork.title or '無題の下書き' }}</h1>
+    </div>
+    <div class="row-actions">
+      {% if can_list %}
+        <a class="button button-primary" href="{{ url_for('artworks.show_listing_form', artwork_id=artwork.id) }}">出品設定へ進む</a>
+      {% elif auction %}
+        <a class="button button-ghost" href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">競売を見る</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="preview-pane">
+      {% if artwork.image_path %}
+        <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+      {% else %}
+        <p class="image-placeholder large">まだ正式保存されていません</p>
+      {% endif %}
+    </div>
+
+    <div class="detail-pane">
+      <dl class="meta-list">
+        <dt>状態</dt>
+        <dd>
+          {% if artwork.is_saved %}正式保存済み{% else %}未保存{% endif %}
+          {% if auction %}／出品済み{% endif %}
+        </dd>
+        <dt>描画の期限</dt>
+        <dd>{{ artwork.drawing_deadline|jst }}</dd>
+        <dt>保存の期限</dt>
+        <dd>{{ artwork.save_deadline|jst }}</dd>
+        <dt>正式保存</dt>
+        <dd>{{ artwork.asset_saved_at|jst if artwork.asset_saved_at else '—' }}</dd>
+        <dt>タグ</dt>
+        <dd>
+          {% if artwork.tags %}
+            {{ artwork.tags|map(attribute='name')|join('、') }}
+          {% else %}—{% endif %}
+        </dd>
+      </dl>
+
+      {% if grace_expired and not artwork.is_saved %}
+        <p class="flash flash-error">
+          保存の猶予を過ぎました。この作品は出品できません。端末に保存した画像のみ残ります。
+        </p>
+        <p class="muted small">
+          ページを閉じる前に、下の「端末に保存」から固定画像をダウンロードしてください。
+          後日アップロードして出品することはできません。
+        </p>
+        <button type="button" class="button button-small" id="local-save">端末に保存</button>
+      {% endif %}
+
+      {% if artwork.is_saved %}
+        <div class="download-block">
+          <h2>受け渡しデータ</h2>
+          <p class="muted small">
+            原寸 PNG と、全レイヤー（非表示レイヤーを含む）と構成情報の ZIP を保持しています。
+            落札確定後は落札者だけがダウンロードできます。
+          </p>
+          <div class="button-row">
+            <a class="button button-small" href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='png') }}">原寸 PNG</a>
+            <a class="button button-small" href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='zip') }}">レイヤー ZIP</a>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="edit-block">
+        <h2>出品情報</h2>
+        {% if auction %}
+          <p class="muted small">出品済みのため、タイトルと説明は変更できません。</p>
+          <p><strong>{{ artwork.title }}</strong></p>
+          <p class="muted">{{ artwork.description or '説明はありません。' }}</p>
+        {% else %}
+          <form method="post" action="{{ url_for('artworks.update_draft', artwork_id=artwork.id) }}" class="stack-form compact">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>
+              タイトル（200文字以内）
+              <input type="text" name="title" value="{{ artwork.title }}" maxlength="200" required>
+            </label>
+            <label>
+              説明（任意）
+              <textarea name="description" rows="4" maxlength="2000">{{ artwork.description or '' }}</textarea>
+            </label>
+            <button type="submit" class="button button-small">保存する</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const localSave = document.getElementById('local-save');
+  if (localSave) {
+    localSave.addEventListener('click', async () => {
+      const response = await fetch('{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}');
+      if (!response.ok) { alert('保存できる画像がありません。'); return; }
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'hew-artwork-{{ artwork.id }}.png';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+  }
+</script>
+{% endblock %}

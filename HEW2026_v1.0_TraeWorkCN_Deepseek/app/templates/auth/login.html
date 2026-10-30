@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field_errors %}
+
+{% block title %}ログイン — HEW{% endblock %}
+
+{% block content %}
+<div class="auth-layout">
+  <section class="auth-card">
+    <p class="eyebrow">LOGIN</p>
+    <h1>おかえりなさい。</h1>
+    <p class="lead">メールアドレスとパスワードでログインします。</p>
+
+    <form method="post" novalidate class="stack-form">
+      {{ form.hidden_tag() }}
+
+      <div class="field">
+        {{ form.email.label }}
+        {{ form.email(class="input", autocomplete="email", placeholder="you@example.com") }}
+        {{ field_errors(form.email) }}
+      </div>
+
+      <div class="field">
+        {{ form.password.label }}
+        {{ form.password(class="input", autocomplete="current-password", placeholder="8文字以上") }}
+        {{ field_errors(form.password) }}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">ログイン</button>
+    </form>
+
+    <p class="auth-switch">アカウントをお持ちでない方は
+      <a href="{{ url_for('auth.register') }}">新規登録</a>
+    </p>
+  </section>
+
+  <aside class="auth-side">
+    <p class="eyebrow">HEW</p>
+    <h2>描いた時間が、<br>そのまま価値になる。</h2>
+    <p>10秒の一筆も、5分の集中も。作品はポイントで競り合うオークションへ。</p>
+    <ul class="side-list">
+      <li>制限時間つきのキャンバス</li>
+      <li>下書き保存してから出品</li>
+      <li>自動入札で上限額まで追随</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

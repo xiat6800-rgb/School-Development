@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block title %}アクセス権限{% endblock %}{% block content %}<section class="error-page"><strong>403</strong><h1>この操作は許可されていません。</h1><p>作者・落札者・管理者など、操作できる立場を確認してください。</p><a class="button" href="{{ url_for('main.index') }}">ホームへ戻る</a></section>{% endblock %}

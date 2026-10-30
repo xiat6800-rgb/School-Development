@@ -1,0 +1,86 @@
+"""ドメインで共通利用する定数。DB には文字列として保存する。"""
+
+# 権限
+ROLE_USER = "user"
+ROLE_ADMIN = "admin"
+
+# 作品の状態
+ARTWORK_STATUS_DRAFT = "draft"
+ARTWORK_STATUS_LISTED = "listed"
+ARTWORK_STATUS_SOLD = "sold"
+ARTWORK_STATUS_CANCELLED = "cancelled"
+ARTWORK_STATUSES = (
+    ARTWORK_STATUS_DRAFT,
+    ARTWORK_STATUS_LISTED,
+    ARTWORK_STATUS_SOLD,
+    ARTWORK_STATUS_CANCELLED,
+)
+
+# 作品の公開状態
+ARTWORK_VISIBILITY_PUBLIC = "public"
+ARTWORK_VISIBILITY_HIDDEN = "hidden"
+
+# 競売の状態
+AUCTION_STATUS_ACTIVE = "active"
+AUCTION_STATUS_ENDED = "ended"
+AUCTION_STATUS_CANCELLED = "cancelled"
+
+# 競売の終了理由
+AUCTION_CLOSED_TIME_EXPIRED = "time_expired"
+AUCTION_CLOSED_CANCELLED = "cancelled"
+
+# 入札の状態
+BID_STATUS_ACCEPTED = "accepted"
+BID_STATUS_REJECTED = "rejected"
+
+# ポイント取引の種別
+WALLET_TYPE_CHARGE = "charge"
+WALLET_TYPE_BID = "bid"
+WALLET_TYPE_REFUND = "refund"
+WALLET_TYPE_PURCHASE = "purchase"
+WALLET_TYPE_BONUS = "bonus"
+
+WALLET_TYPE_LABELS = {
+    WALLET_TYPE_CHARGE: "チャージ",
+    WALLET_TYPE_BID: "入札",
+    WALLET_TYPE_REFUND: "返還",
+    WALLET_TYPE_PURCHASE: "落札代金",
+    WALLET_TYPE_BONUS: "ボーナス",
+}
+
+# アプリ内通知の種別
+NOTIFICATION_BID_RECEIVED = "bid_received"
+NOTIFICATION_OUTBID = "outbid"
+NOTIFICATION_AUCTION_WON = "auction_won"
+NOTIFICATION_AUCTION_UNSOLD = "auction_unsold"
+NOTIFICATION_AUTO_BID_STOPPED = "auto_bid_stopped"
+
+NOTIFICATION_TYPE_LABELS = {
+    NOTIFICATION_BID_RECEIVED: "入札受付",
+    NOTIFICATION_OUTBID: "高値更新",
+    NOTIFICATION_AUCTION_WON: "落札確定",
+    NOTIFICATION_AUCTION_UNSOLD: "未落札終了",
+    NOTIFICATION_AUTO_BID_STOPPED: "自動入札停止",
+}
+
+# ボーナスの契機
+BONUS_REGISTRATION = "registration"
+BONUS_FIRST_LISTING = "first_listing"
+BONUS_DAILY_SAVE = "daily_save"
+
+BONUS_TYPE_LABELS = {
+    BONUS_REGISTRATION: "登録ボーナス",
+    BONUS_FIRST_LISTING: "初出品ボーナス",
+    BONUS_DAILY_SAVE: "描画保存ボーナス",
+}
+
+# イベント操作の受付区分
+EVENT_OPERATION_REGISTER = "register"
+EVENT_OPERATION_DRAW_START = "draw_start"
+EVENT_OPERATION_LIST = "list"
+
+EVENT_OPERATION_LABELS = {
+    EVENT_OPERATION_REGISTER: "新規登録",
+    EVENT_OPERATION_DRAW_START: "描画開始",
+    EVENT_OPERATION_LIST: "出品",
+}

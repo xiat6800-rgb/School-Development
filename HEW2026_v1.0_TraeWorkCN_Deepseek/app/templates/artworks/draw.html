@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}絵を描く — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">DRAW</p>
+    <h1>絵を描く</h1>
+    <p class="lead">制限時間を選んで描き始めます。保存すると下書きとして残ります。</p>
+  </div>
+  <div class="head-note">
+    <span class="note-strong">描画ボーナス</span>
+    <span>{{ "{:,}".format(draw_bonus) }}pt / 残り {{ draw_bonus_times }} 回</span>
+  </div>
+</div>
+
+<div class="draw-layout">
+  <section class="canvas-panel">
+    <div class="canvas-frame">
+      <canvas id="draw-canvas" width="{{ canvas_width }}" height="{{ canvas_height }}"></canvas>
+      <div id="canvas-overlay" class="canvas-overlay">
+        <p>制限時間を選んで「描き始める」を押してください。</p>
+      </div>
+    </div>
+
+    <form id="save-form" method="post" action="{{ url_for('artworks.save_draft') }}" class="save-row">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="image_data" id="image-data">
+      <button type="submit" id="save-button" class="btn btn-primary" disabled>完成して下書き保存</button>
+      <span class="hint">時間切れの場合は自動で保存されます。保存後は加筆できません。</span>
+    </form>
+  </section>
+
+  <aside class="draw-tools">
+    <div class="tool-block">
+      <h2>制限時間</h2>
+      <div class="time-options">
+        {% for value, label in time_limits %}
+          <label class="time-option">
+            <input type="radio" name="time_limit" value="{{ value }}" {% if loop.first %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <p class="hint">描き始めた後は変更できません。</p>
+    </div>
+
+    <div class="tool-block">
+      <h2>ペン</h2>
+      <div class="pen-options" role="group" aria-label="ペンの種類">
+        <button type="button" class="pen-button is-active" data-pen="gpen">Gペン</button>
+        <button type="button" class="pen-button" data-pen="maru">丸ペン</button>
+        <button type="button" class="pen-button" data-pen="blur">ぼかし</button>
+        <button type="button" class="pen-button" data-pen="eraser">消しゴム</button>
+      </div>
+
+      <label class="range-field">
+        <span>太さ <output id="size-output">6</output></span>
+        <input type="range" id="brush-size" min="1" max="40" value="6">
+      </label>
+
+      <label class="color-field">
+        <span>色</span>
+        <input type="color" id="pen-color" value="#1b2a3a">
+      </label>
+    </div>
+
+    <div class="tool-block">
+      <h2>操作</h2>
+      <div class="timer" id="timer">--:--</div>
+      <button type="button" id="start-button" class="btn btn-primary btn-block">描き始める</button>
+      <div class="tool-actions">
+        <button type="button" id="undo-button" class="btn btn-ghost">元に戻す</button>
+        <button type="button" id="clear-button" class="btn btn-ghost">全消去</button>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+{% endblock %}

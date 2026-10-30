@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}通知 — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">NOTIFICATIONS</p>
+    <h1>通知</h1>
+    <p class="lead">入札や落札の通知を確認できます。メール配信の結果も記録されています。</p>
+  </div>
+  {% if notifications %}
+    <form method="post" action="{{ url_for('notifications.mark_all_read') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost">すべて既読にする</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if notifications %}
+  <ul class="notification-list">
+    {% for notification in notifications %}
+      <li class="notification-item {% if not notification.is_read %}is-unread{% endif %}">
+        <div class="notification-main">
+          <div class="notification-heading">
+            {% if not notification.is_read %}<span class="unread-dot" aria-label="未読"></span>{% endif %}
+            <h2>{{ notification.title }}</h2>
+          </div>
+          <p>{{ notification.message }}</p>
+          <p class="hint">{{ notification.created_at|jst }}</p>
+          <div class="notification-actions">
+            {% if notification.auction %}
+              <a class="text-link" href="{{ url_for('auctions.detail', auction_id=notification.auction.id) }}">商品詳細を開く</a>
+            {% endif %}
+            {% if not notification.is_read %}
+              <form method="post" action="{{ url_for('notifications.mark_read', notification_id=notification.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ url_for('notifications.index') }}">
+                <button type="submit" class="link-button">既読にする</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if notification.deliveries %}
+          <div class="delivery-state">
+            {% for delivery in notification.deliveries %}
+              <span class="delivery-badge delivery-{{ delivery.delivery_status }}">
+                メール: {{ {'pending': '送信待ち', 'sent': '送信済み', 'failed': '失敗'}.get(delivery.delivery_status, delivery.delivery_status) }}
+              </span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="empty-state">
+    <p class="empty-title">通知はまだありません。</p>
+    <p>入札や落札があったときに、ここへ届きます。</p>
+  </div>
+{% endif %}
+{% endblock %}

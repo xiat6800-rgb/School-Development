@@ -1,0 +1,57 @@
+# ============================================================
+# 03 キャッシュと環境変数 — 「毎回ダウンロード」をやめる
+#   置き場所: .github/workflows/ci.yml
+#
+#   03 で足すもの:
+#     - pip のキャッシュ（2〜3 分の節約。無料枠の消費も減る）
+#     - env（環境変数）の渡し方
+#     - ${{ }} 式 と $VAR の違い
+# ============================================================
+
+name: 03 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# workflow 全体で使う環境変数
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }} # 式の中から env を参照
+          cache: pip # ← これだけで pip のキャッシュが有効になる
+          # キャッシュのキーに使うファイル。requirements.txt が変わるとキャッシュも更新される
+          cache-dependency-path: requirements.txt
+
+      - name: 依存をインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov
+
+      # ステップ単位の env。ここでテスト用のダミー値を渡す。
+      # 本物の秘密は絶対に書かない（リポジトリに残る）。
+      - name: テスト
+        env:
+          SECRET_KEY: ci-dummy-secret-key
+          FLASK_ENV: testing
+        run: pytest -q --cov=app --cov-report=term-missing
+
+      # ${{ }} は「workflow を走らせる前に GitHub が文字列へ展開する」。
+      # $VAR は「シェルが実行時に読む」。混同すると動かない。
+      - name: 式とシェル変数の違い
+        run: |
+          echo "GitHub の式: ${{ github.ref }} / ${{ github.sha }}"
+          echo "シェルの変数: $SECRET_KEY"

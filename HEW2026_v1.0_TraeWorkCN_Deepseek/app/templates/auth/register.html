@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field_errors %}
+
+{% block title %}新規登録 — HEW{% endblock %}
+
+{% block content %}
+<div class="auth-layout">
+  <section class="auth-card">
+    <p class="eyebrow">SIGN UP</p>
+    <h1>はじめの一枚を、ここから。</h1>
+    <p class="lead">登録するとボーナスポイントが付与され、すぐに入札できます。</p>
+
+    <form method="post" novalidate class="stack-form">
+      {{ form.hidden_tag() }}
+
+      <div class="field">
+        {{ form.username.label }}
+        {{ form.username(class="input", autocomplete="username", placeholder="半角英数字 3〜20文字") }}
+        {{ field_errors(form.username) }}
+      </div>
+
+      <div class="field">
+        {{ form.email.label }}
+        {{ form.email(class="input", autocomplete="email", placeholder="you@example.com") }}
+        {{ field_errors(form.email) }}
+      </div>
+
+      <div class="field">
+        {{ form.password.label }}
+        {{ form.password(class="input", autocomplete="new-password", placeholder="8文字以上") }}
+        {{ field_errors(form.password) }}
+      </div>
+
+      <div class="field">
+        {{ form.confirm.label }}
+        {{ form.confirm(class="input", autocomplete="new-password", placeholder="もう一度入力") }}
+        {{ field_errors(form.confirm) }}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">登録して始める</button>
+    </form>
+
+    <p class="auth-switch">すでにアカウントをお持ちの方は
+      <a href="{{ url_for('auth.login') }}">ログイン</a>
+    </p>
+  </section>
+
+  <aside class="auth-side">
+    <p class="eyebrow">BONUS</p>
+    <h2>登録した瞬間から、<br>入札できる。</h2>
+    <p>Ver0.5 では実際の課金は行いません。ボーナスポイントで競り合いを体験できます。</p>
+    <ul class="side-list">
+      <li>登録で {{ "{:,}".format(config.BONUS_SIGNUP_POINTS) }}pt</li>
+      <li>初出品で {{ "{:,}".format(config.BONUS_FIRST_LISTING_POINTS) }}pt</li>
+      <li>描くたびに {{ "{:,}".format(config.BONUS_DRAW_POINTS) }}pt（最大 {{ config.BONUS_DRAW_MAX_TIMES }} 回）</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

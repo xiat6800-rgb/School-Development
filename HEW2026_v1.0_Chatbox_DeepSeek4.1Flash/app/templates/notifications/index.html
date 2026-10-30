@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}通知{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">アプリ内通知</p>
+      <h1>通知</h1>
+    </div>
+    {% if notifications %}
+      <form method="post" action="{{ url_for('notifications.mark_all_read') }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button button-small button-ghost">すべて既読にする</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <p class="muted small">メール通知は行いません。通知はこの画面と画面上部の件数だけです。</p>
+
+  {% if notifications %}
+    <ul class="notification-list">
+      {% for notification in notifications %}
+        <li class="notification-item{% if not notification.is_read %} is-unread{% endif %}">
+          <div class="notification-main">
+            <p class="notification-title">
+              {% if not notification.is_read %}<span class="dot"></span>{% endif %}
+              {{ notification.title }}
+            </p>
+            <p class="muted small">
+              {{ NOTIFICATION_TYPE_LABELS.get(notification.notification_type, notification.notification_type) }}
+              ／ {{ notification.created_at|jst }}
+            </p>
+            <p>{{ notification.message }}</p>
+          </div>
+          <div class="notification-actions">
+            {% if notification.related_auction_id %}
+              <a class="button button-small" href="{{ url_for('auctions.show_auction_detail', auction_id=notification.related_auction_id) }}">商品詳細へ</a>
+            {% endif %}
+            {% if not notification.is_read %}
+              <form method="post" action="{{ url_for('notifications.mark_notification_read', notification_id=notification.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="button button-small button-ghost">既読にする</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">通知はまだありません。</p>
+  {% endif %}
+</section>
+{% endblock %}

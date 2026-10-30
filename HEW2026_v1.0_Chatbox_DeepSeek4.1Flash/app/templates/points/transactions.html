@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}ポイント履歴{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">ポイント</p>
+      <h1>取引履歴</h1>
+    </div>
+    <div class="balance-block">
+      <span class="balance-label">所持ポイント</span>
+      <span class="balance-value">{{ balance|points }}<small>pt</small></span>
+    </div>
+  </div>
+
+  {% if transactions %}
+    <table class="data-table">
+      <thead><tr><th>日時</th><th>種別</th><th>増減</th><th>残高</th><th>メモ</th></tr></thead>
+      <tbody>
+        {% for transaction in transactions %}
+          <tr>
+            <td>{{ transaction.created_at|jst }}</td>
+            <td>{{ WALLET_TYPE_LABELS.get(transaction.transaction_type, transaction.transaction_type) }}</td>
+            <td class="{{ 'plus' if transaction.amount > 0 else 'minus' }}">{{ '%+d' % transaction.amount }}pt</td>
+            <td>{{ transaction.balance_after|points }}pt</td>
+            <td class="muted small">{{ transaction.memo or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">まだ履歴がありません。</p>
+  {% endif %}
+</section>
+{% endblock %}

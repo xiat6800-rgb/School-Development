@@ -1,0 +1,33 @@
+{% extends 'base.html' %}{% from 'macros.html' import auction_card, empty_state %}
+{% block title %}今日の絵が、今日の競売に{% endblock %}
+{% block content %}
+<section class="home-hero">
+  <div class="hero-copy">
+    <p class="hero-kicker">制限時間は最大5分。出品はあとから。</p>
+    <h1>描いた瞬間を、<br>そのまま競売へ。</h1>
+    <p class="hero-lead">サイトのCanvasで描き、PNGと全レイヤーを保存。ポイントで入札して、作者と落札者だけが制作データを持ち帰れます。</p>
+    <div class="hero-actions"><a class="button" href="{{ url_for('artworks.show_drawing_setup') }}">10秒から描く</a><a class="button button-quiet" href="{{ url_for('search.search_artworks') }}">出品作品を見る</a></div>
+    <dl class="hero-facts"><div><dt>Canvas</dt><dd>1,024 × 1,024</dd></div><div><dt>Layer</dt><dd>最大10枚</dd></div><div><dt>Auction</dt><dd>5〜20分</dd></div></dl>
+  </div>
+  <div class="hero-lot">
+    {% if auctions %}{% set feature=auctions[0] %}
+      <a href="{{ url_for('auctions.show_auction_detail', auction_id=feature.id) }}" class="feature-frame">
+        <img src="{{ url_for('artworks.show_artwork_image', artwork_id=feature.artwork_id) }}" alt="{{ feature.artwork.title }}">
+        <span class="feature-stamp">まもなく終了</span>
+      </a>
+      <div class="feature-caption"><span>Lot {{ '%03d'|format(feature.id) }} / {{ feature.artwork.artist.display_name }}</span><h2>{{ feature.artwork.title }}</h2><div><strong>{{ '{:,}'.format(feature.current_price) }} pt</strong><span class="countdown" data-end="{{ feature.ends_at.isoformat() }}Z"></span></div></div>
+    {% else %}
+      <div class="blank-canvas" aria-hidden="true"><svg viewBox="0 0 400 400"><path class="drawn-line" d="M52 280c35-153 73-202 108-108s57 139 88 30 54-63 91 38"/><circle cx="108" cy="105" r="40"/><path d="m272 264 66 66m-66 0 66-66"/></svg><span>ここに、今日の1枚目を。</span></div>
+    {% endif %}
+  </div>
+</section>
+{% if streams %}
+<section class="live-ribbon"><div class="section-heading"><h2>ただいま制作中</h2><span>ゲストも視聴できます</span></div><div class="live-list">{% for stream in streams %}<a href="{{ url_for('streams.show_stream', stream_id=stream.id) }}"><i class="live-dot"></i><strong>{{ stream.artwork.title }}</strong><span>{{ stream.streamer.display_name }} / {{ stream.status|status_jp }}</span></a>{% endfor %}</div></section>
+{% endif %}
+<section class="home-section">
+  <div class="section-heading"><div><p>開催中のオークション</p><h2>今、競り合われている絵</h2></div><a href="{{ url_for('search.search_artworks') }}">すべての作品</a></div>
+  {% if auctions %}<div class="art-grid">{% for auction in auctions %}{{ auction_card(auction) }}{% endfor %}</div>{% else %}{{ empty_state('最初の出品を待っています', '描画を正式保存すると、好きなタイミングで出品できます。') }}{% endif %}
+</section>
+<section class="tag-band"><div><h2>タグから拾う</h2><p>複数選択すると、すべてのタグを持つ作品だけを表示します。</p></div><form action="{{ url_for('search.search_artworks') }}" method="get" class="tag-cloud">{% for tag in tags %}<button type="submit" name="tags" value="{{ tag.id }}"># {{ tag.name }}</button>{% endfor %}</form></section>
+{% if recent %}<section class="home-section recent-section"><div class="section-heading"><div><p>終了した記録</p><h2>落札・未落札も作品履歴に</h2></div></div><div class="art-grid art-grid-compact">{% for auction in recent %}{{ auction_card(auction) }}{% endfor %}</div></section>{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import artwork_card %}
+
+{% block title %}作品を探す — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">SEARCH</p>
+    <h1>作品を探す</h1>
+    <p class="lead">複数のタグを選ぶと、すべてのタグを持つ作品だけを表示します（AND 検索）。</p>
+  </div>
+</div>
+
+<form method="get" action="{{ url_for('search.index') }}" class="search-form">
+  <div class="field">
+    <label for="q">キーワード</label>
+    <input id="q" name="q" class="input" type="search" value="{{ keyword }}" placeholder="タイトル・説明から検索">
+  </div>
+
+  <div class="field">
+    <span class="label-text">タグ</span>
+    <div class="tag-choices">
+      {% for tag in tags %}
+        <label class="tag-choice">
+          <input type="checkbox" name="tags" value="{{ tag.id }}" {% if tag.id in selected_ids %}checked{% endif %}>
+          <span>{{ tag.name }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">検索する</button>
+    {% if keyword or selected_ids %}
+      <a class="btn btn-ghost" href="{{ url_for('search.index') }}">条件をリセット</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if selected %}
+  <div class="selected-tags">
+    <span class="hint">選択中のタグ:</span>
+    {% for tag in selected %}<span class="tag">{{ tag.name }}</span>{% endfor %}
+  </div>
+{% endif %}
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">RESULTS</p>
+      <h2>{{ artworks|length }} 件の作品</h2>
+    </div>
+  </div>
+
+  {% if artworks %}
+    <div class="art-grid">
+      {% for artwork in artworks %}{{ artwork_card(artwork) }}{% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">条件に合う作品が見つかりませんでした。</p>
+      <p>タグを減らすか、キーワードを変えてお試しください。</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

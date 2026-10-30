@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}アカウント{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">@{{ current_user.username }}</p>
+      <h1>{{ current_user.disp_name }}</h1>
+    </div>
+    <div class="balance-block">
+      <span class="balance-label">所持ポイント</span>
+      <span class="balance-value">{{ current_user.point_balance|points }}<small>pt</small></span>
+      <a class="small-link" href="{{ url_for('points.transactions') }}">取引履歴</a>
+      <a class="small-link" href="{{ url_for('points.show_charge') }}">チャージ</a>
+    </div>
+  </div>
+
+  <div class="split">
+    <section class="panel">
+      <h2>表示名の変更</h2>
+      <form method="post" action="{{ url_for('auth.update_display_name') }}" class="stack-form compact">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+          表示名（1〜50文字）
+          <input type="text" name="disp_name" value="{{ current_user.disp_name }}" maxlength="50" required>
+        </label>
+        <button type="submit" class="button button-small">更新する</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>復旧コードの再発行</h2>
+      <p class="muted small">現在のパスワードを確認し、古いコードを無効にしたうえで新しいコードを発行します。</p>
+      <form method="post" action="{{ url_for('auth.regenerate_recovery_code') }}" class="stack-form compact">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+          現在のパスワード
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="button button-small button-ghost">再発行する</button>
+      </form>
+    </section>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>下書き</h2>
+    <p class="section-note">正式保存済みの作品だけ出品できます。</p>
+  </div>
+  {% if drafts %}
+    <div class="list-cards">
+      {% for draft in drafts %}
+        <article class="list-row">
+          <div class="row-main">
+            <h3>{{ draft.title or '無題の下書き' }}</h3>
+            <p class="muted small">
+              {{ draft.created_at|jst }} ／
+              {% if draft.is_saved %}正式保存済み{% else %}未保存{% endif %}
+            </p>
+          </div>
+          <div class="row-actions">
+            <a class="button button-small" href="{{ url_for('artworks.show_draft', artwork_id=draft.id) }}">管理</a>
+            {% if draft.is_saved and not draft.auction %}
+              <a class="button button-small button-primary" href="{{ url_for('artworks.show_listing_form', artwork_id=draft.id) }}">出品する</a>
+            {% elif draft.auction %}
+              <a class="button button-small button-ghost" href="{{ url_for('auctions.show_auction_detail', auction_id=draft.auction.id) }}">競売を見る</a>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">下書きはまだありません。<a href="{{ url_for('artworks.show_drawing_setup') }}">描きはじめる</a></p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>出品した競売</h2>
+  </div>
+  {% if my_auctions %}
+    <div class="list-cards">
+      {% for auction in my_auctions %}
+        <article class="list-row">
+          <div class="row-main">
+            <h3><a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">{{ auction.artwork.title or '無題' }}</a></h3>
+            <p class="muted small">
+              {{ auction.start_time|jst }} → {{ auction.end_time|jst }} ／
+              {{ auction.current_price|points }}pt ／
+              {% if auction.status == 'active' %}開催中{% elif auction.winner_id %}落札済み{% else %}終了（入札なし）{% endif %}
+            </p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">出品した競売はまだありません。</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <div class="split">
+    <section class="panel">
+      <h2>お気に入りの作品</h2>
+      {% if artwork_favorites %}
+        <ul class="plain-list">
+          {% for favorite in artwork_favorites %}
+            <li>
+              <a href="{{ url_for('auctions.show_artwork_auction', artwork_id=favorite.artwork.id) }}">
+                {{ favorite.artwork.title or '無題' }}
+              </a>
+              <span class="muted small">{{ favorite.created_at|jst }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small">まだ登録がありません。</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>お気に入りの競売</h2>
+      {% if auction_favorites %}
+        <ul class="plain-list">
+          {% for favorite in auction_favorites %}
+            <li>
+              <a href="{{ url_for('auctions.show_auction_detail', auction_id=favorite.auction.id) }}">
+                {{ favorite.auction.artwork.title or '無題' }}
+              </a>
+              <span class="muted small">{{ favorite.auction.current_price|points }}pt</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small">まだ登録がありません。</p>
+      {% endif %}
+    </section>
+  </div>
+</section>
+
+<section class="section">
+  <div class="split">
+    <section class="panel">
+      <h2>最近のポイント履歴</h2>
+      {% if transactions %}
+        <ul class="plain-list">
+          {% for transaction in transactions %}
+            <li>
+              <span>{{ WALLET_TYPE_LABELS.get(transaction.transaction_type, transaction.transaction_type) }}</span>
+              <span class="{{ 'plus' if transaction.amount > 0 else 'minus' }}">{{ '%+d' % transaction.amount }}pt</span>
+              <span class="muted small">{{ transaction.created_at|jst }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small">履歴はまだありません。</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>ボーナス獲得履歴</h2>
+      {% if bonuses %}
+        <ul class="plain-list">
+          {% for bonus in bonuses %}
+            <li>
+              <span>{{ bonus.bonus_type }}</span>
+              <span class="plus">+{{ bonus.amount }}pt</span>
+              <span class="muted small">{{ bonus.created_at|jst }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small">まだ獲得していません。</p>
+      {% endif %}
+      <a class="small-link" href="{{ url_for('points.show_bonus_points') }}">ボーナスの条件を見る</a>
+    </section>
+  </div>
+</section>
+{% endblock %}

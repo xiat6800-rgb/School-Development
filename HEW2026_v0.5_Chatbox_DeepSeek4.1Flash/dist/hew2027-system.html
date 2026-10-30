@@ -1,0 +1,4115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEW — 時間のなかで描いた一枚を、競りにかける</title>
+<meta name="description" content="制限時間内に描いた絵を下書き保存し、ポイントで入札して落とすオークションシステム。要件定義書 Ver0.5 の画面一式。">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=New+Tegomin&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   HEW Ver0.5 — 画面一式
+   版元: 印刷工房の目録（製版のトンボ、値札、判子、台帳）を設計言語にする。
+   インクは 5 色だけ。蛍光紅(#FF3D6E) は「いま生きている状態」専用。
+   ============================================================ */
+
+/* --- 1. インクと紙の変数 -------------------------------- */
+:root {
+  /* 紙 3 段 */
+  --paper: #efeee9;
+  --paper-2: #e4e2da;
+  --paper-3: #f7f6f2;
+
+  /* 墨 */
+  --ink: #16181c;
+  --ink-70: rgba(22, 24, 28, 0.7);
+  --ink-45: rgba(22, 24, 28, 0.45);
+  --ink-22: rgba(22, 24, 28, 0.22);
+  --ink-12: rgba(22, 24, 28, 0.12);
+
+  /* 藍（構造・静） */
+  --indigo: #27407f;
+  --indigo-soft: rgba(39, 64, 127, 0.16);
+
+  /* 蛍光紅（いま・生きている状態） */
+  --spot: #ff3d6e;
+  --spot-deep: #b3123e;
+  --spot-soft: rgba(255, 61, 110, 0.14);
+
+  --font-display: "New Tegomin", "Hiragino Mincho ProN", "Yu Mincho", "MS PMincho", serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --wrap: 1180px;
+  --gap: 20px;
+  --radius: 3px;
+  --rail-h: 62px;
+
+  --shadow-lift: 0 10px 26px -18px rgba(22, 24, 28, 0.55), 0 2px 0 0 var(--ink);
+}
+
+/* --- 2. 基礎 ------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  font-weight: 400;
+  letter-spacing: 0.012em;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 紙の目（ごく薄い点格子） */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(var(--ink) 0.8px, transparent 0.9px);
+  background-size: 9px 9px;
+  opacity: 0.055;
+}
+
+body > * { position: relative; z-index: 1; }
+
+img { max-width: 100%; display: block; }
+a { color: var(--indigo); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--spot-deep); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3, h4, p, ul, ol, dl, figure, blockquote { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+
+:focus-visible {
+  outline: 2px solid var(--spot-deep);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 90;
+  background: var(--ink);
+  color: var(--paper-3);
+  padding: 8px 14px;
+  text-decoration: none;
+  font-family: var(--font-data);
+  font-size: 12px;
+  transition: top 0.16s ease;
+}
+.skip-link:focus { top: 12px; color: var(--paper-3); }
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.screen { flex: 1 0 auto; padding-bottom: 72px; }
+.screen:focus { outline: none; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- 3. 版面と罫（トンボ・罫線） ------------------------ */
+.tombo-frame {
+  background-image:
+    linear-gradient(var(--ink-45) 0 0), linear-gradient(var(--ink-45) 0 0),
+    linear-gradient(var(--ink-45) 0 0), linear-gradient(var(--ink-45) 0 0),
+    linear-gradient(var(--ink-45) 0 0), linear-gradient(var(--ink-45) 0 0),
+    linear-gradient(var(--ink-45) 0 0), linear-gradient(var(--ink-45) 0 0);
+  background-size: 17px 1px, 17px 1px, 17px 1px, 17px 1px,
+                   1px 17px, 1px 17px, 1px 17px, 1px 17px;
+  background-position:
+    left 0 top 8px, right 0 top 8px, left 0 bottom 8px, right 0 bottom 8px,
+    left 8px top 0, right 8px top 0, left 8px bottom 0, right 8px bottom 0;
+  background-repeat: no-repeat;
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--ink-22);
+  margin: 0;
+}
+
+.rule-strong { border-top: 2px solid var(--ink); }
+
+.halftone {
+  background-color: var(--paper-2);
+  background-image: radial-gradient(var(--ink-45) 1px, transparent 1.1px);
+  background-size: 7px 7px;
+}
+
+/* --- 4. 文字 ------------------------------------------- */
+.eyebrow {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--ink-22);
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  line-height: 1.28;
+  letter-spacing: 0.005em;
+}
+
+.h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 1.05rem + 1vw, 1.75rem);
+  line-height: 1.35;
+}
+
+.h3 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.lede {
+  font-size: 1rem;
+  color: var(--ink-70);
+  max-width: 62ch;
+}
+
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.data { font-family: var(--font-data); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.muted { color: var(--ink-70); }
+.faint { color: var(--ink-45); }
+.small { font-size: 12.5px; }
+.strong { font-weight: 700; }
+.nowrap { white-space: nowrap; }
+
+.label {
+  display: block;
+  font-family: var(--font-data);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-70);
+  margin-bottom: 5px;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 2px solid var(--ink);
+  padding-top: 10px;
+  margin-bottom: 18px;
+}
+.section-head .h2 { flex: 1 1 auto; }
+.section-count {
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--ink-70);
+}
+
+/* --- 5. ボタン・入力 ----------------------------------- */
+.btn {
+  --btn-bg: var(--paper-3);
+  --btn-fg: var(--ink);
+  --btn-bd: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-bd);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, color 0.14s ease;
+}
+.btn:hover { box-shadow: 2px 2px 0 0 var(--ink); transform: translate(-1px, -1px); color: var(--btn-fg); }
+.btn:active { box-shadow: none; transform: translate(0, 0); }
+.btn[disabled], .btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-primary { --btn-bg: var(--ink); --btn-fg: var(--paper-3); }
+.btn-primary:hover { --btn-fg: var(--paper-3); }
+
+.btn-live { --btn-bg: var(--spot-deep); --btn-fg: #fff; --btn-bd: var(--spot-deep); }
+.btn-live:hover { --btn-fg: #fff; }
+
+.btn-ghost { --btn-bg: transparent; --btn-bd: var(--ink-45); }
+.btn[aria-pressed="true"] { --btn-bg: var(--indigo); --btn-fg: #fff; --btn-bd: var(--indigo); }
+.btn[aria-pressed="true"]:hover { --btn-fg: #fff; }
+.btn-sm { padding: 6px 11px; font-size: 12.5px; }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.field { margin-bottom: 16px; }
+.input, .select, .textarea {
+  width: 100%;
+  background: var(--paper-3);
+  border: 1px solid var(--ink-45);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+.textarea { min-height: 104px; resize: vertical; line-height: 1.7; }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--ink); outline: 2px solid var(--spot-deep); outline-offset: 1px; }
+.input::placeholder, .textarea::placeholder { color: var(--ink-45); }
+.input-data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+.help { font-size: 12.5px; color: var(--ink-70); margin-top: 5px; }
+.problem {
+  border-left: 3px solid var(--spot-deep);
+  background: var(--spot-soft);
+  color: var(--spot-deep);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.notice-ink {
+  border-left: 3px solid var(--indigo);
+  background: var(--indigo-soft);
+  padding: 10px 13px;
+  font-size: 13px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.choice-set { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* --- 6. 判子（タグ） ----------------------------------- */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ink-45);
+  border-radius: 2px;
+  padding: 3px 9px 4px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--paper-3);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--paper-3), inset 0 0 0 2px var(--ink-12);
+}
+.stamp:hover { border-color: var(--ink); color: var(--ink); }
+.stamp[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper-3);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink), inset 0 0 0 2px var(--paper-3);
+}
+.stamp[aria-pressed="true"]:hover { color: var(--paper-3); }
+.stamp-row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+/* --- 7. 札（チケット） --------------------------------- */
+.ticket {
+  position: relative;
+  background: var(--paper-3);
+  border: 1px solid var(--ink-22);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.ticket:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: var(--ink-45); }
+.ticket-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
+.ticket-link:hover { color: inherit; }
+
+.ticket-plate {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--paper-2);
+  border-bottom: 1px dashed var(--ink-22);
+  overflow: hidden;
+}
+.ticket-plate img { width: 100%; height: 100%; object-fit: cover; }
+.ticket-plate::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 6px;
+  background-image: radial-gradient(circle at 4px 3px, var(--paper-3) 2.6px, transparent 2.8px);
+  background-size: 12px 6px;
+}
+.ticket-hole {
+  position: absolute;
+  top: 9px; left: 9px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--ink-22);
+  z-index: 2;
+}
+
+.ticket-body { padding: 12px 13px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.ticket-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.4;
+  margin: 0;
+}
+.ticket-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--ink-12);
+  padding-top: 9px;
+}
+
+.price-tag {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--paper-3);
+  border: 1px solid var(--spot-deep);
+  border-left: 0;
+  border-radius: 0 3px 3px 0;
+  padding: 4px 9px 5px 14px;
+  clip-path: polygon(9px 0, 100% 0, 100% 100%, 9px 100%, 0 50%);
+  min-width: 92px;
+}
+.price-tag::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 3px; height: 3px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: var(--paper-3);
+}
+.price-tag .pt-label {
+  font-family: var(--font-data);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-70);
+}
+.price-tag .pt-value {
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--spot-deep);
+  white-space: nowrap;
+}
+.price-tag.is-quiet { border-color: var(--ink-45); }
+.price-tag.is-quiet .pt-value { color: var(--ink); }
+.price-tag.is-plain { clip-path: none; border-left: 1px solid var(--ink-45); border-radius: 3px; padding-left: 9px; }
+.price-tag.is-plain::before { display: none; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-data);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 2px 7px 3px;
+  border: 1px solid var(--ink-45);
+  border-radius: 2px;
+  background: var(--paper-3);
+  color: var(--ink-70);
+}
+.badge-live { border-color: var(--spot); background: var(--spot-soft); color: var(--spot-deep); }
+.badge-live::before {
+  content: "";
+  width: 6px; height: 6px;
+  background: var(--spot);
+  border-radius: 50%;
+}
+.badge-ink { background: var(--ink); color: var(--paper-3); border-color: var(--ink); }
+.badge-soon { border-style: dashed; }
+
+/* --- 8. 台帳（データ表） ------------------------------- */
+.ledger { border-top: 1px solid var(--ink-22); }
+.ledger-row {
+  display: grid;
+  grid-template-columns: var(--ledger-cols, 1fr 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--ink-12);
+  font-size: 13.5px;
+}
+.ledger-row.is-me { background: var(--spot-soft); }
+.ledger-row.is-me .ledger-amount { color: var(--spot-deep); font-weight: 600; }
+.ledger-amount { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.ledger-head {
+  display: grid;
+  grid-template-columns: var(--ledger-cols, 1fr 1fr);
+  gap: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--ink-22);
+  font-family: var(--font-data);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-70);
+}
+.ledger-empty { padding: 22px 2px; color: var(--ink-70); font-size: 13.5px; }
+
+/* --- 9. パネル ----------------------------------------- */
+.panel {
+  background: var(--paper-3);
+  border: 1px solid var(--ink-22);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.panel-ink {
+  background: var(--ink);
+  color: var(--paper-3);
+  border-color: var(--ink);
+}
+.panel-ink .label, .panel-ink .muted, .panel-ink .help { color: rgba(247, 246, 242, 0.75); }
+.panel-ink .eyebrow { color: var(--spot); }
+.panel-ink a { color: var(--paper-3); }
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--ink-22);
+  padding-bottom: 9px;
+  margin-bottom: 14px;
+}
+.panel-ink .panel-head { border-bottom-color: rgba(247, 246, 242, 0.3); }
+
+.layout-aside {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.95fr);
+  gap: 26px;
+  align-items: start;
+}
+.grid-plates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 18px;
+}
+
+/* --- 10. ヘッダ／フッタ -------------------------------- */
+.rail {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(239, 238, 233, 0.94);
+  backdrop-filter: blur(7px);
+  border-bottom: 1px solid var(--ink);
+}
+.rail-inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: var(--rail-h);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  color: var(--ink);
+  flex: 0 0 auto;
+}
+.brand:hover { color: var(--ink); }
+.brand-mark {
+  width: 11px; height: 11px;
+  background: var(--spot);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+.brand-word {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.brand-sub {
+  font-family: var(--font-data);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-70);
+  border-left: 1px solid var(--ink-22);
+  padding-left: 9px;
+  line-height: 1.3;
+}
+
+.rail-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.rail-link {
+  padding: 6px 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  white-space: nowrap;
+  position: relative;
+}
+.rail-link:hover { border-color: var(--ink-22); background: var(--paper-3); color: var(--ink); }
+.rail-link[aria-current="page"] { border-color: var(--ink); background: var(--ink); color: var(--paper-3); }
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--ink);
+  background: var(--paper-3);
+  border-radius: 2px;
+  padding: 5px 10px;
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.wallet-chip:hover { color: var(--ink); box-shadow: 2px 2px 0 0 var(--ink); }
+.wallet-chip .pt { color: var(--ink-70); font-weight: 400; font-size: 11px; }
+.count-dot {
+  display: inline-block;
+  min-width: 17px;
+  padding: 0 5px;
+  background: var(--spot);
+  color: #fff;
+  border-radius: 9px;
+  font-family: var(--font-data);
+  font-size: 10.5px;
+  line-height: 16px;
+  text-align: center;
+  margin-left: 5px;
+  vertical-align: 1px;
+}
+
+.colophon {
+  border-top: 1px solid var(--ink);
+  background: var(--paper-2);
+  padding: 30px 0 36px;
+  margin-top: auto;
+}
+.colophon-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.colophon-mark {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 7px;
+}
+.colophon-note { font-size: 12.5px; color: var(--ink-70); max-width: 64ch; }
+.colophon-meta { font-size: 11.5px; color: var(--ink-70); margin-top: 9px; }
+.colophon-label { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-70); margin-bottom: 6px; }
+.colophon-side .btn { margin-top: 10px; }
+
+/* --- 11. ホーム ---------------------------------------- */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 34px;
+  align-items: center;
+  padding: 46px 0 40px;
+  border-bottom: 1px solid var(--ink);
+}
+.hero-copy { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+.hero h1 { max-width: 13.5em; }
+.hero-stroke {
+  width: min(100%, 460px);
+  height: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-stroke span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--spot);
+  clip-path: polygon(0 22%, 99% 0, 100% 74%, 0 96%);
+  transform-origin: left center;
+  animation: stroke-draw 0.85s cubic-bezier(0.22, 0.68, 0.24, 1) both;
+}
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 22px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--ink-70);
+  border-top: 1px solid var(--ink-22);
+  padding-top: 12px;
+  width: 100%;
+}
+.hero-facts b { color: var(--ink); font-weight: 600; }
+
+/* ホーム右：いま競り中の一枚 */
+.live-plate { padding: 14px; }
+.live-plate .ticket-plate { border: 1px solid var(--ink-22); border-radius: 2px; }
+.live-meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-top: 13px; }
+.live-clock { display: flex; flex-direction: column; gap: 3px; }
+.live-clock .clock-value {
+  font-family: var(--font-data);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--spot-deep);
+  letter-spacing: -0.02em;
+}
+.live-clock.is-closed .clock-value { color: var(--ink); font-weight: 500; }
+
+.stroke-track {
+  position: relative;
+  height: 9px;
+  background: var(--ink-12);
+  border: 1px solid var(--ink-22);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.stroke-track span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--spot);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  transition: width 0.95s linear;
+}
+.stroke-track.is-urgent span { background: var(--spot-deep); }
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 26px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px 0 20px;
+}
+.filter-block { display: flex; flex-direction: column; gap: 7px; }
+.filter-block .label { margin-bottom: 0; }
+.filter-bar .select { min-width: 170px; padding: 7px 10px; font-size: 13.5px; }
+
+.section { padding-top: 36px; }
+.section-tight { padding-top: 24px; }
+
+.empty-state {
+  border: 1px dashed var(--ink-45);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  text-align: left;
+  background: var(--paper-3);
+}
+.empty-state .h3 { margin-bottom: 5px; }
+.empty-state p { color: var(--ink-70); font-size: 13.5px; max-width: 58ch; margin-bottom: 14px; }
+
+/* --- 12. 商品詳細 -------------------------------------- */
+.work-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 0 18px;
+}
+.work-title { font-family: var(--font-display); font-size: clamp(1.6rem, 1.1rem + 1.9vw, 2.4rem); line-height: 1.3; text-wrap: balance; }
+.crumbs { font-family: var(--font-data); font-size: 11.5px; color: var(--ink-70); margin-bottom: 4px; letter-spacing: 0.06em; }
+
+.artwork-frame {
+  background: var(--paper-3);
+  border: 1px solid var(--ink-22);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.artwork-frame img {
+  width: 100%;
+  border: 1px solid var(--ink-12);
+  background: var(--paper-3);
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+}
+.artwork-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ink-70);
+  margin-top: 10px;
+  letter-spacing: 0.05em;
+}
+
+.deflist { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; font-size: 13.5px; }
+.deflist dt { font-family: var(--font-data); font-size: 11.5px; letter-spacing: 0.08em; color: var(--ink-70); padding-top: 2px; }
+.deflist dd { margin: 0; }
+
+.bid-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bid-price .value {
+  font-family: var(--font-data);
+  font-size: clamp(1.9rem, 1.3rem + 2.2vw, 2.7rem);
+  font-weight: 600;
+  color: var(--spot-deep);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.bid-price .unit { font-family: var(--font-data); font-size: 14px; color: var(--ink-70); }
+
+.quick-bid { display: flex; gap: 7px; flex-wrap: wrap; }
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  border-top: 1px solid var(--ink-12);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+
+/* --- 13. 描画（スタジオ） ------------------------------ */
+.studio { padding-top: 22px; max-width: 1010px; }
+.studio-time { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-end; justify-content: space-between; }
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-data);
+}
+.clock-value {
+  font-size: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.clock.is-urgent .clock-value { color: var(--spot-deep); }
+.clock-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-70); }
+
+.canvas-stage {
+  background: var(--paper-2);
+  border: 1px solid var(--ink-22);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 18px;
+}
+.canvas-frame {
+  position: relative;
+  background-color: var(--paper-3);
+  background-image: radial-gradient(var(--ink-12) 1px, transparent 1.1px);
+  background-size: 22px 22px;
+  border: 1px solid var(--ink-45);
+  touch-action: none;
+  cursor: crosshair;
+}
+.canvas-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  touch-action: none;
+}
+.canvas-frame.is-locked { cursor: not-allowed; }
+.canvas-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(239, 238, 233, 0.76);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.studio-tools { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 16px; }
+.tool-group { display: flex; flex-direction: column; gap: 7px; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-45);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--paper-3), 0 0 0 3px var(--ink); }
+.swatch-paper { background: var(--paper-3); }
+
+/* --- 14. アカウント ------------------------------------ */
+.tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--ink); margin-bottom: 20px; }
+.tab {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  padding: 9px 15px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-70);
+  cursor: pointer;
+  border-radius: 3px 3px 0 0;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--ink); background: var(--paper-3); }
+.tab[aria-selected="true"] { background: var(--paper-3); border-color: var(--ink); color: var(--ink); }
+
+.balance-card { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-end; justify-content: space-between; }
+.balance-value { font-family: var(--font-data); font-size: clamp(1.8rem, 1.3rem + 2vw, 2.5rem); font-weight: 600; line-height: 1; }
+.balance-value .unit { font-size: 14px; color: var(--ink-70); font-weight: 400; }
+
+.draft-card { display: grid; grid-template-columns: 132px 1fr; gap: 15px; }
+.draft-card .draft-plate { border: 1px solid var(--ink-22); background: var(--paper-2); aspect-ratio: 4/3; }
+.draft-card .draft-plate img { width: 100%; height: 100%; object-fit: cover; }
+
+/* --- 15. 通知・ボーナス -------------------------------- */
+.notice-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 13px 4px;
+  border-bottom: 1px solid var(--ink-12);
+  font-size: 13.5px;
+}
+.notice-row.is-unread {
+  background: linear-gradient(90deg, var(--spot-soft), rgba(255, 61, 110, 0) 62%);
+}
+.notice-time { font-family: var(--font-data); font-size: 11.5px; color: var(--ink-70); }
+.notice-actions { display: flex; gap: 7px; align-items: center; }
+.unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--spot); display: inline-block; }
+
+.bonus-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--ink-12);
+}
+.bonus-row .bonus-amount { font-family: var(--font-data); font-weight: 600; font-size: 1.15rem; }
+
+/* --- 16. 将来機能 -------------------------------------- */
+.soon-panel { padding: 26px; border: 1px dashed var(--ink-45); border-radius: var(--radius); position: relative; overflow: hidden; }
+.soon-panel > * { position: relative; z-index: 1; }
+.soon-watermark {
+  position: absolute;
+  right: -8px;
+  bottom: -18px;
+  font-family: var(--font-display);
+  font-size: 5.4rem;
+  color: var(--ink-12);
+  letter-spacing: 0.1em;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.soon-list { display: grid; gap: 9px; margin-top: 14px; }
+.soon-list li { display: grid; grid-template-columns: 84px 1fr; gap: 12px; font-size: 13.5px; align-items: baseline; }
+
+/* --- 17. トースト・ダイアログ -------------------------- */
+.toast-region {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: min(360px, calc(100vw - 36px));
+}
+.toast {
+  background: var(--ink);
+  color: var(--paper-3);
+  border-left: 4px solid var(--spot);
+  border-radius: 2px;
+  padding: 11px 15px;
+  font-size: 13.5px;
+  box-shadow: 0 14px 30px -18px rgba(22, 24, 28, 0.9);
+  animation: toast-in 0.22s ease both;
+}
+.toast.is-error { border-left-color: var(--spot-deep); }
+.toast.is-indigo { border-left-color: var(--indigo); }
+
+.stamp[disabled] { opacity: 0.45; cursor: not-allowed; }
+.swatch[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(22, 24, 28, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dialog {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  width: min(560px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  padding: 24px;
+  box-shadow: 0 26px 60px -30px rgba(22, 24, 28, 0.75);
+  animation: dialog-in 0.18s ease both;
+}
+.dialog h2 { margin-bottom: 12px; }
+.dialog-body { display: flex; flex-direction: column; gap: 14px; }
+
+@keyframes stroke-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 0.42s cubic-bezier(0.22, 0.68, 0.24, 1) both; }
+.rise-1 { animation-delay: 0.06s; }
+.rise-2 { animation-delay: 0.13s; }
+.rise-3 { animation-delay: 0.2s; }
+
+/* --- 18. レスポンシブ ---------------------------------- */
+@media (max-width: 1000px) {
+  .layout-aside { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 26px; padding: 34px 0 30px; }
+  .hero h1 { max-width: 16em; }
+  .colophon-inner { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .hero h1 { font-size: clamp(1.55rem, 7vw, 2.1rem); }
+  .hero-br { display: none; }
+}
+
+@media (max-width: 720px) {
+  body { font-size: 14.5px; }
+  .rail-inner { flex-wrap: wrap; gap: 10px; padding-top: 9px; padding-bottom: 9px; }
+  .rail-nav { width: 100%; margin-left: 0; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .brand-sub { display: none; }
+  .grid-plates { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 13px; }
+  .ticket-title { font-size: 1rem; }
+  .work-head { padding: 16px 0 14px; }
+  .draft-card { grid-template-columns: 1fr; }
+  .notice-row { grid-template-columns: 1fr; gap: 7px; }
+  .notice-actions { justify-content: flex-start; }
+  .panel { padding: 15px; }
+  .canvas-stage { padding: 11px; }
+  .toast-region { left: 14px; right: 14px; bottom: 14px; max-width: none; }
+  .studio-tools { gap: 14px; }
+}
+
+/* --- 19. モーション設定 --------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ticket:hover { transform: none; }
+  .btn:hover { transform: none; box-shadow: none; }
+}
+
+@media print {
+  .rail, .toasts, .toast-region, .colophon-side, .btn { display: none; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#screen">本文へ移動</a>
+
+<header class="rail">
+  <div class="wrap rail-inner" id="rail-inner"></div>
+</header>
+
+<main class="screen" id="screen" tabindex="-1"></main>
+
+<footer class="colophon">
+  <div class="wrap colophon-inner">
+    <div class="colophon-main">
+      <p class="colophon-mark">HEW</p>
+      <p class="colophon-note">
+        サイト上で描いた絵を、ポイントで入札するオークションに出品・入札できるシステム。<br>
+        本ファイル群は要件定義書 Ver0.5 の画面一式を、ブラウザ内だけで動くプロトタイプとして実装したものです。
+      </p>
+      <p class="colophon-meta mono">
+        VER 0.5 · 2026-09-18 要件 · 制作: 佐伯祐介 / 小村世羅 / Naufal Abrisam Hilmy / 瀧本隆人
+      </p>
+    </div>
+    <div class="colophon-side">
+      <p class="mono colophon-label">DEMO DATA</p>
+      <p class="colophon-note">
+        登録・出品・入札・ポイントの記録は、このブラウザの保存領域にだけ書かれます。サーバーには送信されません。
+      </p>
+      <button type="button" class="btn btn-ghost btn-sm" id="reset-demo">デモデータを初期化する</button>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="false"></div>
+<div id="dialog-root"></div>
+
+<script>
+/* ============================================================
+   art.js — デモ用の作品画像をその場で描く
+   サーバーに画像を持たないので、seed から SVG を組み立てて
+   data URI として渡す。同じ seed なら必ず同じ絵になる。
+   rr(rnd, a, b) は「rnd を使って a〜b の実数を返す」補助関数。
+   ============================================================ */
+(function () {
+  "use strict";
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const INKS = [
+    "#16181c", // 墨
+    "#27407f", // 藍
+    "#b3123e", // 濃紅
+    "#2f6b4f", // 若竹
+    "#7b6bb0", // 藤
+    "#c98a12"  // 黄土
+  ];
+
+  const W = 800;
+  const H = 600;
+
+  function rr(rnd, a, b) { return a + rnd() * (b - a); }
+  function pick(rnd, arr) { return arr[Math.floor(rnd() * arr.length) % arr.length]; }
+  function fx(n) { return Number(n).toFixed(1); }
+
+  /* 手ぶれのある流れる線を 1 本つくる */
+  function flowingPath(rnd, x, y, steps, len, drift) {
+    let d = "M" + fx(x) + " " + fx(y);
+    let angle = rr(rnd, 0, Math.PI * 2);
+    for (let i = 0; i < steps; i++) {
+      angle += rr(rnd, -drift, drift);
+      const nx = x + Math.cos(angle) * len;
+      const ny = y + Math.sin(angle) * len;
+      const cx = x + Math.cos(angle - 1.1) * len * 0.6;
+      const cy = y + Math.sin(angle - 1.1) * len * 0.6;
+      d += "Q" + fx(cx) + " " + fx(cy) + " " + fx(nx) + " " + fx(ny);
+      x = nx;
+      y = ny;
+    }
+    return d;
+  }
+
+  function blobPath(rnd, cx, cy, r, points) {
+    const pts = [];
+    for (let i = 0; i < points; i++) {
+      const a = (Math.PI * 2 * i) / points;
+      const rad = r * rr(rnd, 0.74, 1.16);
+      pts.push([cx + Math.cos(a) * rad, cy + Math.sin(a) * rad]);
+    }
+    let d = "M" + fx(pts[0][0]) + " " + fx(pts[0][1]);
+    for (let i = 1; i <= pts.length; i++) {
+      const p = pts[i % pts.length];
+      const q = pts[(i + 1) % pts.length];
+      d += "Q" + fx(p[0]) + " " + fx(p[1]) + " " + fx((p[0] + q[0]) / 2) + " " + fx((p[1] + q[1]) / 2);
+    }
+    return d + "Z";
+  }
+
+  function styleFigure(rnd, ink) {
+    const cx = rr(rnd, W * 0.34, W * 0.66);
+    const cy = rr(rnd, H * 0.42, H * 0.58);
+    const r = rr(rnd, 64, 92);
+    const out = [];
+    out.push('<path d="' + blobPath(rnd, cx, cy, r, 11) + '" fill="none" stroke="' + ink +
+      '" stroke-width="3.4" stroke-linejoin="round"/>');
+    const ex = r * 0.34;
+    out.push('<circle cx="' + fx(cx - ex) + '" cy="' + fx(cy - r * 0.22) + '" r="' + fx(rr(rnd, 4, 8)) + '" fill="' + ink + '"/>');
+    out.push('<circle cx="' + fx(cx + ex) + '" cy="' + fx(cy - r * 0.22) + '" r="' + fx(rr(rnd, 4, 8)) + '" fill="' + ink + '"/>');
+    out.push('<path d="M' + fx(cx - r * 0.3) + " " + fx(cy + r * 0.3) + "Q" + fx(cx) + " " + fx(cy + r * 0.5) + " " +
+      fx(cx + r * 0.3) + " " + fx(cy + r * 0.3) + '" fill="none" stroke="' + ink +
+      '" stroke-width="3" stroke-linecap="round"/>');
+    for (let i = 0; i < 3; i++) {
+      out.push('<path d="' + flowingPath(rnd, rr(rnd, 40, W - 40), rr(rnd, 40, H - 40), 3, rr(rnd, 22, 44), 0.9) +
+        '" fill="none" stroke="' + pick(rnd, INKS) + '" stroke-width="2" stroke-linecap="round" opacity="0.75"/>');
+    }
+    return out.join("");
+  }
+
+  function styleLine(rnd) {
+    const out = [];
+    const n = Math.floor(rr(rnd, 11, 17));
+    for (let i = 0; i < n; i++) {
+      out.push('<path d="' + flowingPath(rnd, rr(rnd, 60, W - 60), rr(rnd, 60, H - 60),
+        Math.floor(rr(rnd, 5, 9)), rr(rnd, 42, 96), 0.95) +
+        '" fill="none" stroke="' + pick(rnd, INKS) + '" stroke-width="' + fx(rr(rnd, 2, 5.4)) +
+        '" stroke-linecap="round" opacity="' + rr(rnd, 0.72, 1).toFixed(2) + '"/>');
+    }
+    out.push('<path d="' + blobPath(rnd, rr(rnd, 190, W - 190), rr(rnd, 150, H - 150), rr(rnd, 60, 110), 10) +
+      '" fill="none" stroke="' + pick(rnd, INKS) + '" stroke-width="2.6"/>');
+    return out.join("");
+  }
+
+  function styleIcon(rnd) {
+    const ink = pick(rnd, INKS);
+    const cx = W / 2;
+    const cy = H / 2;
+    const r = rr(rnd, 140, 200);
+    const out = [];
+    out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + fx(r) + '" fill="none" stroke="' + ink + '" stroke-width="4"/>');
+    out.push('<path d="' + blobPath(rnd, cx, cy, r * 0.55, 9) + '" fill="none" stroke="' + pick(rnd, INKS) + '" stroke-width="3"/>');
+    for (let i = 0; i < 5; i++) {
+      const a = rr(rnd, 0, Math.PI * 2);
+      const k1 = rr(rnd, 1.2, 1.5);
+      const k2 = rr(rnd, 1.2, 1.5);
+      out.push('<line x1="' + fx(cx + Math.cos(a) * r) + '" y1="' + fx(cy + Math.sin(a) * r) +
+        '" x2="' + fx(cx + Math.cos(a) * r * k1) + '" y2="' + fx(cy + Math.sin(a) * r * k2) +
+        '" stroke="' + pick(rnd, INKS) + '" stroke-width="2.4" stroke-linecap="round"/>');
+    }
+    return out.join("");
+  }
+
+  function styleHatch(rnd) {
+    const ink = pick(rnd, INKS);
+    const out = [];
+    const x0 = rr(rnd, 90, 300);
+    const y0 = rr(rnd, 70, 200);
+    const bw = rr(rnd, 220, 380);
+    const bh = rr(rnd, 200, 320);
+    out.push('<rect x="' + fx(x0) + '" y="' + fx(y0) + '" width="' + fx(bw) + '" height="' + fx(bh) +
+      '" fill="none" stroke="' + ink + '" stroke-width="3"/>');
+    const gap = rr(rnd, 11, 20);
+    for (let x = -bh; x < bw + bh; x += gap) {
+      out.push('<line x1="' + fx(x0 + x) + '" y1="' + fx(y0 + bh) + '" x2="' + fx(x0 + x + bh) + '" y2="' + fx(y0) +
+        '" stroke="' + ink + '" stroke-width="1.5" opacity="0.72"/>');
+    }
+    out.push('<path d="' + blobPath(rnd, rr(rnd, 140, W - 140), rr(rnd, H * 0.6, H - 80), rr(rnd, 40, 80), 9) +
+      '" fill="none" stroke="' + pick(rnd, INKS) + '" stroke-width="3"/>');
+    return out.join("");
+  }
+
+  /* seed から作品画像（data URI）をつくる */
+  function svgArt(seed, style) {
+    const rnd = mulberry32((seed * 2654435761) >>> 0);
+    const styles = ["figure", "line", "icon", "hatch"];
+    const st = style || styles[Math.floor(rnd() * styles.length)];
+    let body = "";
+    if (st === "figure") body = styleFigure(rnd, pick(rnd, INKS));
+    else if (st === "icon") body = styleIcon(rnd);
+    else if (st === "hatch") body = styleHatch(rnd);
+    else body = styleLine(rnd);
+
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">' +
+      '<rect width="' + W + '" height="' + H + '" fill="#f7f6f2"/>' +
+      '<g stroke-linecap="round">' + body + "</g>" +
+      '<g fill="none" stroke="#16181c" stroke-opacity="0.25" stroke-width="1">' +
+      '<circle cx="52" cy="' + (H - 52) + '" r="13"/>' +
+      '<path d="M39 ' + (H - 52) + 'h26M52 ' + (H - 65) + 'v26"/></g>' +
+      "</svg>";
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
+  window.HEW_ART = { svgArt: svgArt, INKS: INKS };
+})();
+
+</script>
+<script>
+/* ============================================================
+   data.js — 初期タグとデモ用の種データ
+   作品の画像は art.js が seed から描く。入札・ポイントの
+   履歴は store.js が起動時に 1 件ずつ処理して作るので、
+   残高・台帳・通知が食い違わない。
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const DEV_PASSWORD = "HewDemo2027!";
+
+  const TAGS = [
+    "乗り物",
+    "動物",
+    "昆虫",
+    "植物",
+    "食べ物",
+    "キャラクター",
+    "風景",
+    "抽象"
+  ];
+
+  const USERS = [
+    { username: "demo", email: "demo@hew.local", displayName: "デモ見学者", balance: 8000 },
+    { username: "minato", email: "artist0@hew.local", displayName: "みなと", balance: 9000 },
+    { username: "kohaku", email: "artist1@hew.local", displayName: "こはく", balance: 8500 },
+    { username: "soyokaze", email: "artist2@hew.local", displayName: "そよかぜ", balance: 8000 },
+    { username: "kuroha", email: "artist3@hew.local", displayName: "くろは", balance: 7500 }
+  ];
+
+  /* デモアカウント自身が下書きとして持っている 1 枚 */
+  const DEMO_DRAFT = { seed: 1201, artStyle: "figure", drawSeconds: 30 };
+
+  /* endsIn は起動時からの秒数。負の値は「すでに終了したオークション」。
+     rivals は入札してくる相手の人数（0 なら落札者なし）。
+     seller は USERS の添字（0 はデモアカウント）。demoJoins は
+     デモアカウントも初期の入札に加わる作品、demoTops はさらに
+     最後の一手をデモアカウントが入れて最高額になる作品。 */
+  const WORKS = [
+    {
+      title: "放課後の自転車",
+      description: "30秒で描きました。サドルの影を濃くすると遠近が出た気がします。",
+      tags: ["乗り物", "風景"],
+      seed: 101, artStyle: "line", seller: 1, drawSeconds: 30,
+      startPrice: 300, endsIn: 8 * 60, rivals: 3, autoRival: true, demoJoins: true
+    },
+    {
+      title: "ねこ又",
+      description: "1分。耳の角度だけ納得いっていませんが、そこも含めて味ということにしました。",
+      tags: ["動物", "キャラクター"],
+      seed: 202, artStyle: "figure", seller: 2, drawSeconds: 60,
+      startPrice: 500, endsIn: 41 * 60, rivals: 2
+    },
+    {
+      title: "朝の通学路",
+      description: "5分。電柱を描き込んだら、道の方が小さくなってしまいました。",
+      tags: ["風景"],
+      seed: 303, artStyle: "line", seller: 3, drawSeconds: 300,
+      startPrice: 1000, endsIn: 3 * 3600, rivals: 4, autoRival: true, demoJoins: true
+    },
+    {
+      title: "蝉の抜け殻",
+      description: "10秒チャレンジ。脚は 6 本あるはずですが 4 本しか見えません。",
+      tags: ["昆虫", "抽象"],
+      seed: 404, artStyle: "icon", seller: 1, drawSeconds: 10,
+      startPrice: 200, endsIn: 9 * 3600, rivals: 1
+    },
+    {
+      title: "たんぽぽの綿毛",
+      description: "1分。消しゴムで削りすぎて、綿毛が飛んだあとみたいになりました。",
+      tags: ["植物"],
+      seed: 505, artStyle: "icon", seller: 4, drawSeconds: 60,
+      startPrice: 400, endsIn: 25 * 3600, rivals: 2
+    },
+    {
+      title: "湯気のラーメン",
+      description: "30秒。湯気は円を半分にして描くとそれらしくなります。",
+      tags: ["食べ物"],
+      seed: 606, artStyle: "hatch", seller: 2, drawSeconds: 30,
+      startPrice: 600, endsIn: 50 * 3600, rivals: 3, demoJoins: true, demoTops: true
+    },
+    {
+      title: "オリキャラ・アカリ",
+      description: "5分。自分の分身です。髪の跳ねを一筆で描けたのがうれしい。",
+      tags: ["キャラクター", "動物"],
+      seed: 707, artStyle: "figure", seller: 3, drawSeconds: 300,
+      startPrice: 800, endsIn: 2 * 86400, rivals: 5, autoRival: true, demoJoins: true
+    },
+    {
+      title: "屋上から見た街",
+      description: "1分。窓の数を全部描いたら時間が終わりました。",
+      tags: ["風景", "抽象"],
+      seed: 808, artStyle: "hatch", seller: 1, drawSeconds: 60,
+      startPrice: 350, endsIn: 3 * 86400, rivals: 2
+    },
+    {
+      title: "線だけの抽象",
+      description: "10秒。意図はありません。手の動きだけが残っています。",
+      tags: ["抽象"],
+      seed: 909, artStyle: "line", seller: 4, drawSeconds: 10,
+      startPrice: 150, endsIn: 4 * 86400, rivals: 0
+    },
+    {
+      title: "虫かごの中",
+      description: "30秒。格子が多すぎて中身が見えません。逆に良かった。",
+      tags: ["昆虫"],
+      seed: 111, artStyle: "hatch", seller: 2, drawSeconds: 30,
+      startPrice: 250, endsIn: 5 * 86400, rivals: 1
+    },
+    {
+      title: "おにぎりと味噌汁",
+      description: "1分。海苔の位置を直したかった。",
+      tags: ["食べ物", "抽象"],
+      seed: 222, artStyle: "icon", seller: 3, drawSeconds: 60,
+      startPrice: 300, endsIn: 6 * 86400, rivals: 2
+    },
+    {
+      title: "橋と電車",
+      description: "5分。線路を描き込むほど、橋が短くなっていきます。",
+      tags: ["乗り物", "風景"],
+      seed: 333, artStyle: "line", seller: 4, drawSeconds: 300,
+      startPrice: 1200, endsIn: 7 * 86400, rivals: 3
+    },
+    {
+      title: "観葉植物の窓辺",
+      description: "すでに落札済み。葉の重なりを 3 色で分けました。",
+      tags: ["植物", "風景"],
+      seed: 444, artStyle: "icon", seller: 1, drawSeconds: 60,
+      startPrice: 500, endsIn: -3600, rivals: 3
+    },
+    {
+      title: "ペン先の兎",
+      description: "入札なしで終了した作品。見てくれる人がいないと、こうなります。",
+      tags: ["動物", "抽象"],
+      seed: 555, artStyle: "figure", seller: 2, drawSeconds: 10,
+      startPrice: 800, endsIn: -7200, rivals: 0
+    },
+    {
+      title: "通学路の電柱",
+      description: "30秒。自分の出品です。別のアカウントから競り上がってもらえます。",
+      tags: ["風景", "乗り物"],
+      seed: 616, artStyle: "line", seller: 0, drawSeconds: 30, listedAgoMin: 9,
+      startPrice: 400, endsIn: 6 * 60, rivals: 2
+    },
+    {
+      title: "ゆるキャラ・ヘウ",
+      description: "1分。サイトの宣伝用に描きました。",
+      tags: ["キャラクター", "動物"],
+      seed: 717, artStyle: "figure", seller: 0, drawSeconds: 60, listedAgoMin: 110,
+      startPrice: 600, endsIn: 4 * 86400, rivals: 3
+    }
+  ];
+
+  window.HEW_DATA = {
+    DEV_PASSWORD: DEV_PASSWORD,
+    TAGS: TAGS,
+    USERS: USERS,
+    WORKS: WORKS,
+    DEMO_DRAFT: DEMO_DRAFT
+  };
+})();
+
+</script>
+<script>
+/* ============================================================
+   store.js — 業務ロジック（ブラウザ内で完結するデモ用の実装）
+   要件定義書 Ver0.5 のルールだけを実装する。
+   ・入札：開催中 / 終了前 / 自己入札禁止 / 現在価格より大きい / 残高内
+   ・受理時に引き落とし、高値更新で前の最高額を返却（同一トランザクション相当）
+   ・自動入札：他人の入札に上限額の範囲で上乗せ。同額上限は設定が早い人を優先
+   ・終了：終了日時で落札確定。落札時に二重に引き落とさない
+   ※ 本物の認証・DB・排他制御ではありません。画面と業務ルールの確認用です。
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const KEY = "hew2027.v05.chatbox.prototype";
+  const INCREMENT = 10;                 // 自動入札の上乗せ幅（未決事項の開発用既定値）
+  const BONUS = { signup: 500, draw: 50, list: 100 };
+
+  let state = null;
+  let memoryOnly = false;               // localStorage が使えない環境の退避
+
+  /* ---------- 小物 ---------- */
+  const now = () => Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  const uniq = (arr) => Array.from(new Set(arr));
+
+  function nextId(prefix) {
+    state.seq.n += 1;
+    return prefix + "-" + state.seq.n;
+  }
+
+  function enc(pw) {
+    try { return btoa(unescape(encodeURIComponent("hew:" + pw))); }
+    catch (e) { return "raw:" + pw; }
+  }
+
+  function persist() {
+    if (memoryOnly) return;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (e) {
+      memoryOnly = true;
+      console.warn("保存領域に書き込めないため、このタブ内だけで動作します。", e);
+    }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.version !== 1) return null;
+      return parsed;
+    } catch (e) { return null; }
+  }
+
+  /* ---------- 種データの組み立て ---------- */
+  function blank() {
+    return {
+      version: 1,
+      seq: { n: 0 },
+      users: [],
+      artworks: [],
+      auctions: [],
+      bids: [],
+      autoBids: [],
+      tx: [],
+      notices: [],
+      mails: [],
+      favWorks: [],
+      favAuctions: [],
+      bonus: {},
+      session: { userId: null },
+      meta: { seededAt: null }
+    };
+  }
+
+  function addUser(username, email, displayName, balance) {
+    const u = {
+      id: nextId("u"),
+      username: username,
+      email: email.toLowerCase(),
+      pw: enc(window.HEW_DATA.DEV_PASSWORD),
+      displayName: displayName,
+      balance: 0,
+      createdAt: iso(now())
+    };
+    state.users.push(u);
+    // 開発用の初期ポイントは登録ボーナスより先に付与した扱いにする
+    credit(u.id, "dev", balance - BONUS.signup, "開発用の初期ポイント", now() - 2000);
+    credit(u.id, "signup", BONUS.signup, "登録ボーナス");
+    state.bonus[u.id] = { signup: true, draw: false, list: false };
+    return u;
+  }
+
+  function credit(userId, kind, amount, note, atMs) {
+    if (amount === 0) return null;
+    const u = user(userId);
+    if (!u) return null;
+    u.balance += amount;
+    const row = {
+      id: nextId("t"),
+      userId: userId,
+      kind: kind,
+      amount: amount,
+      balanceAfter: u.balance,
+      note: note || "",
+      createdAt: iso(atMs || now())
+    };
+    state.tx.push(row);
+    return row;
+  }
+
+  function buildSeed() {
+    state = blank();
+    const users = window.HEW_DATA.USERS.map((u) => addUser(u.username, u.email, u.displayName, u.balance));
+    const base = now();
+
+    window.HEW_DATA.WORKS.forEach((w, i) => {
+      const seller = users[w.seller === undefined ? 1 : w.seller] || users[1];
+      const agoMin = w.listedAgoMin || (i + 1) * 186;
+      const createdAt = base - agoMin * 60 * 1000;
+      const art = {
+        id: nextId("a"),
+        sellerId: seller.id,
+        title: w.title,
+        description: w.description,
+        tags: w.tags.slice(),
+        image: window.HEW_ART.svgArt(w.seed, w.artStyle),
+        imageKind: "svg",
+        drawSeconds: w.drawSeconds || 30,
+        status: "listed",
+        createdAt: iso(createdAt),
+        listedAt: iso(createdAt)
+      };
+      state.artworks.push(art);
+      state.auctions.push({
+        id: nextId("au"),
+        artworkId: art.id,
+        sellerId: seller.id,
+        startPrice: w.startPrice,
+        currentPrice: w.startPrice,
+        endsAt: iso(base + w.endsIn * 1000),
+        createdAt: iso(createdAt),
+        status: "active",
+        winnerBidId: null,
+        finalPrice: null
+      });
+    });
+
+    // デモアカウントの下書きを 1 枚用意する（すぐ出品の流れを試せるように）
+    const demoUser = users[0];
+    state.artworks.push({
+      id: nextId("a"),
+      sellerId: demoUser.id,
+      title: "",
+      description: "",
+      tags: [],
+      image: window.HEW_ART.svgArt(window.HEW_DATA.DEMO_DRAFT.seed, window.HEW_DATA.DEMO_DRAFT.artStyle),
+      imageKind: "svg",
+      drawSeconds: window.HEW_DATA.DEMO_DRAFT.drawSeconds,
+      status: "draft",
+      createdAt: iso(base - 25 * 60 * 1000),
+      listedAt: null
+    });
+
+    // デモアカウントのお気に入りを少しだけ入れておく
+    if (state.auctions[3]) {
+      state.favWorks.push({ userId: demoUser.id, artworkId: state.auctions[3].artworkId, createdAt: iso(base - 60 * 1000) });
+    }
+    if (state.auctions[6]) {
+      state.favWorks.push({ userId: demoUser.id, artworkId: state.auctions[6].artworkId, createdAt: iso(base - 120 * 1000) });
+    }
+    if (state.auctions[5]) {
+      state.favAuctions.push({ userId: demoUser.id, auctionId: state.auctions[5].id, createdAt: iso(base - 90 * 1000) });
+    }
+
+    // 入札の履歴を 1 件ずつ実際のルールで処理して作る
+    state.auctions.forEach((au, i) => {
+      const w = window.HEW_DATA.WORKS[i];
+      let rivals = state.users.filter((u) => u.id !== au.sellerId);
+      if (!w.demoJoins) {
+        const withoutDemo = rivals.filter((u) => u.id !== demoUser.id);
+        if (withoutDemo.length) rivals = withoutDemo;
+      }
+      const step = Math.max(10, Math.round((au.startPrice * 0.16) / 10) * 10);
+      const n = Math.min(w.rivals || 0, rivals.length);
+      for (let k = 0; k < n; k++) {
+        const bidder = rivals[(i + k) % rivals.length];
+        const amount = au.startPrice + step * (k + 1);
+        placeBid(au.id, amount, "manual", bidder.id, true);
+      }
+      if (w.autoRival && n > 0) {
+        // 自動入札を仕掛けるのは出品者でもデモアカウントでもない相手にする
+        const owner = rivals.length > 2 ? rivals[(i + 1) % rivals.length] : rivals[i % rivals.length];
+        const challenger = rivals.length > 2 ? rivals[(i + 2) % rivals.length] : rivals[(i + 1) % rivals.length];
+        setAutoBid(au.id, owner.id, au.currentPrice + step * 3, true);
+        const cur = getAuction(au.id);
+        placeBid(au.id, cur.currentPrice + step, "manual", challenger.id, false);
+      }
+      if (w.demoTops) {
+        const cur = getAuction(au.id);
+        placeBid(au.id, cur.currentPrice + step, "manual", demoUser.id, true);
+      }
+    });
+
+    state.meta.seededAt = iso(base);
+    closeExpired(true);
+    return state;
+  }
+
+  /* ---------- 参照 ---------- */
+  function user(id) { return state.users.find((u) => u.id === id) || null; }
+  function getAuction(id) { return state.auctions.find((a) => a.id === id) || null; }
+  function getArtwork(id) { return state.artworks.find((a) => a.id === id) || null; }
+  function auctionOfArtwork(artworkId) {
+    return state.auctions.find((a) => a.artworkId === artworkId) || null;
+  }
+  function bidsOf(auctionId) {
+    return state.bids
+      .filter((b) => b.auctionId === auctionId)
+      .sort((a, b) => b.amount - a.amount || Date.parse(a.createdAt) - Date.parse(b.createdAt));
+  }
+  function topBid(auctionId) { return bidsOf(auctionId)[0] || null; }
+  function bidCount(auctionId) { return state.bids.filter((b) => b.auctionId === auctionId).length; }
+  function remainingMs(auction) { return Date.parse(auction.endsAt) - now(); }
+  function autoBidOf(auctionId, userId) {
+    return state.autoBids.find((x) => x.auctionId === auctionId && x.userId === userId && x.active) || null;
+  }
+  function currentUser() { return state.session.userId ? user(state.session.userId) : null; }
+  function isFavWork(userId, artworkId) {
+    return state.favWorks.some((f) => f.userId === userId && f.artworkId === artworkId);
+  }
+  function isFavAuction(userId, auctionId) {
+    return state.favAuctions.some((f) => f.userId === userId && f.auctionId === auctionId);
+  }
+  function noticesOf(userId) {
+    return state.notices
+      .filter((n) => n.userId === userId)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+  function unreadCount(userId) { return noticesOf(userId).filter((n) => !n.read).length; }
+  function ledgerOf(userId) {
+    return state.tx
+      .filter((t) => t.userId === userId)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+  function mailsOf(userId) {
+    const u = user(userId);
+    if (!u) return [];
+    return state.mails
+      .filter((m) => m.to === u.email)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+  function artworksOf(userId) { return state.artworks.filter((a) => a.sellerId === userId); }
+  function draftsOf(userId) {
+    return artworksOf(userId).filter((a) => a.status === "draft")
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+  function listingsOf(userId) { return state.auctions.filter((a) => a.sellerId === userId); }
+
+  /* 検索：公開作品のみ。複数タグは AND。 */
+  function searchWorks(opts) {
+    const o = opts || {};
+    const tags = o.tags || [];
+    let rows = state.artworks
+      .filter((a) => a.status !== "draft")
+      .map((a) => ({ artwork: a, auction: auctionOfArtwork(a.id) }))
+      .filter((r) => r.auction);
+
+    if (tags.length) {
+      rows = rows.filter((r) => tags.every((t) => r.artwork.tags.indexOf(t) >= 0));
+    }
+    if (o.state === "active") rows = rows.filter((r) => r.auction.status === "active");
+    if (o.state === "ended") rows = rows.filter((r) => r.auction.status === "closed");
+
+    const sort = o.sort || "ending";
+    rows.sort((x, y) => {
+      if (sort === "new") return Date.parse(y.artwork.createdAt) - Date.parse(x.artwork.createdAt);
+      if (sort === "price") return y.auction.currentPrice - x.auction.currentPrice;
+      // 終了が近い順（開催中を先、終了済みは最後）
+      const ax = x.auction.status === "active" ? 0 : 1;
+      const ay = y.auction.status === "active" ? 0 : 1;
+      if (ax !== ay) return ax - ay;
+      return Date.parse(x.auction.endsAt) - Date.parse(y.auction.endsAt);
+    });
+    return rows;
+  }
+
+  /* ---------- 認証 ---------- */
+  function register(input) {
+    const username = (input.username || "").trim();
+    const email = (input.email || "").trim().toLowerCase();
+    const password = input.password || "";
+    const confirm = input.confirm || "";
+    if (!username || !email || !password) return { ok: false, message: "ユーザー名・メールアドレス・パスワードはすべて必須です。" };
+    if (username.length > 20) return { ok: false, message: "ユーザー名は 20 文字までです。" };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "メールアドレスの形式を確認してください。" };
+    if (password.length < 8) return { ok: false, message: "パスワードは 8 文字以上にしてください。" };
+    if (confirm !== "" && confirm !== password) return { ok: false, message: "確認用パスワードが一致しません。" };
+    if (state.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) return { ok: false, message: "このユーザー名はすでに使われています。" };
+    if (state.users.some((u) => u.email === email)) return { ok: false, message: "このメールアドレスはすでに登録されています。" };
+
+    const u = {
+      id: nextId("u"),
+      username: username,
+      email: email,
+      pw: enc(password),
+      displayName: username,
+      balance: 0,
+      createdAt: iso(now())
+    };
+    state.users.push(u);
+    state.bonus[u.id] = { signup: true, draw: false, list: false };
+    credit(u.id, "signup", BONUS.signup, "登録ボーナス");
+    state.session.userId = u.id;
+    notify(u.id, "welcome", "ようこそ HEW へ", "登録ボーナス " + BONUS.signup + " pt を受け取りました。絵を描いて出品してみましょう。", {});
+    persist();
+    return { ok: true, user: u };
+  }
+
+  function login(email, password) {
+    const e = (email || "").trim().toLowerCase();
+    const u = state.users.find((x) => x.email === e);
+    if (!u || u.pw !== enc(password || "")) return { ok: false, message: "メールアドレスまたはパスワードが違います。" };
+    state.session.userId = u.id;
+    persist();
+    return { ok: true, user: u };
+  }
+
+  function logout() {
+    state.session.userId = null;
+    persist();
+  }
+
+  function updateDisplayName(name) {
+    const u = currentUser();
+    if (!u) return { ok: false, message: "ログインが必要です。" };
+    const v = (name || "").trim();
+    if (!v) return { ok: false, message: "表示名を入力してください。" };
+    if (v.length > 24) return { ok: false, message: "表示名は 24 文字までです。" };
+    u.displayName = v;
+    persist();
+    return { ok: true };
+  }
+
+  /* ---------- 作品・出品 ---------- */
+  function saveDraft(input) {
+    const u = currentUser();
+    if (!u) return { ok: false, message: "ログインが必要です。" };
+    const image = input.image || "";
+    if (!/^data:image\/png;base64,/.test(image)) return { ok: false, message: "PNG の形式で保存できませんでした。もう一度お試しください。" };
+    // 画像サイズの上限（未決事項の開発用既定値: 4MB）
+    if (image.length > 5.5 * 1024 * 1024) return { ok: false, message: "画像が大きすぎます。画面を小さくして描き直してください。" };
+
+    const art = {
+      id: nextId("a"),
+      sellerId: u.id,
+      title: "",
+      description: "",
+      tags: [],
+      image: image,
+      imageKind: "png",
+      drawSeconds: input.drawSeconds || 0,
+      status: "draft",
+      createdAt: iso(now()),
+      listedAt: null,
+      checksumHint: image.length
+    };
+    state.artworks.push(art);
+    persist();
+    return { ok: true, artwork: art };
+  }
+
+  function updateDraftInfo(artworkId, info) {
+    const u = currentUser();
+    const art = getArtwork(artworkId);
+    if (!u || !art) return { ok: false, message: "作品が見つかりません。" };
+    if (art.sellerId !== u.id) return { ok: false, message: "自分の下書きだけを編集できます。" };
+    if (art.status !== "draft") return { ok: false, message: "出品済みの作品は編集できません。" };
+    art.title = (info.title || "").trim();
+    art.description = (info.description || "").trim();
+    art.tags = uniq((info.tags || []).filter((t) => window.HEW_DATA.TAGS.indexOf(t) >= 0));
+    persist();
+    return { ok: true, artwork: art };
+  }
+
+  function publish(artworkId, info) {
+    const u = currentUser();
+    const art = getArtwork(artworkId);
+    if (!u || !art) return { ok: false, message: "作品が見つかりません。" };
+    if (art.sellerId !== u.id) return { ok: false, message: "自分の下書きだけを出品できます。" };
+    if (art.status !== "draft") return { ok: false, message: "この作品はすでに出品されています。" };
+
+    const title = (info.title || "").trim();
+    const description = (info.description || "").trim();
+    const tags = uniq((info.tags || []).filter((t) => window.HEW_DATA.TAGS.indexOf(t) >= 0));
+    const startPrice = Number(info.startPrice);
+    const endsAt = info.endsAt;
+
+    if (!title) return { ok: false, message: "タイトルを入力してください。" };
+    if (title.length > 60) return { ok: false, message: "タイトルは 60 文字までです。" };
+    if (!Number.isFinite(startPrice) || startPrice < 0) return { ok: false, message: "開始価格は 0 以上の整数で入力してください。" };
+    if (startPrice % 1 !== 0) return { ok: false, message: "開始価格は整数で入力してください。" };
+    if (!tags.length) return { ok: false, message: "タグを 1 つ以上選んでください。" };
+    const endMs = Date.parse(endsAt);
+    if (!endsAt || !Number.isFinite(endMs)) return { ok: false, message: "終了日時を入力してください。" };
+    if (endMs <= now() + 60 * 1000) return { ok: false, message: "終了日時は 1 分より先の時刻を指定してください。" };
+
+    art.title = title;
+    art.description = description;
+    art.tags = tags;
+    art.status = "listed";
+    art.listedAt = iso(now());
+
+    const au = {
+      id: nextId("au"),
+      artworkId: art.id,
+      sellerId: u.id,
+      startPrice: startPrice,
+      currentPrice: startPrice,
+      endsAt: iso(endMs),
+      createdAt: iso(now()),
+      status: "active",
+      winnerBidId: null,
+      finalPrice: null
+    };
+    state.auctions.push(au);
+    persist();
+    return { ok: true, artwork: art, auction: au };
+  }
+
+  /* ---------- 通知・メール ---------- */
+  function notify(userId, kind, title, body, ref) {
+    const n = {
+      id: nextId("n"),
+      userId: userId,
+      kind: kind,
+      title: title,
+      body: body,
+      artworkId: (ref && ref.artworkId) || null,
+      auctionId: (ref && ref.auctionId) || null,
+      read: false,
+      createdAt: iso(now())
+    };
+    state.notices.push(n);
+
+    const u = user(userId);
+    if (u) {
+      state.mails.push({
+        id: nextId("m"),
+        to: u.email,
+        subject: "[HEW] " + title,
+        body: body,
+        status: "queued",       // 送信先 SMTP が未設定のため、実際には送信しない
+        attempts: 0,
+        sentAt: null,
+        error: null,
+        createdAt: iso(now())
+      });
+    }
+    return n;
+  }
+
+  function markNoticeRead(id) {
+    const n = state.notices.find((x) => x.id === id);
+    if (n) { n.read = true; persist(); }
+  }
+  function markAllRead(userId) {
+    noticesOf(userId).forEach((n) => { n.read = true; });
+    persist();
+  }
+
+  /* ---------- 入札 ---------- */
+  function placeBid(auctionId, amount, kind, userId, skipAuto) {
+    const au = getAuction(auctionId);
+    if (!au) return { ok: false, message: "オークションが見つかりません。" };
+    const uid = userId || (currentUser() && currentUser().id);
+    if (!uid) return { ok: false, message: "ログインが必要です。" };
+    const amt = Math.floor(Number(amount));
+
+    if (au.status !== "active") return { ok: false, message: "このオークションはすでに終了しています。" };
+    if (remainingMs(au) <= 0) { closeExpired(); return { ok: false, message: "終了日時を過ぎたため、入札を受け付けられません。" }; }
+    if (au.sellerId === uid) return { ok: false, message: "自分の出品には入札できません。" };
+    if (!Number.isFinite(amt) || amt <= 0) return { ok: false, message: "入札額は 1 pt 以上の整数で入力してください。" };
+    if (amt % 1 !== 0) return { ok: false, message: "入札額は整数で入力してください。" };
+
+    const prev = topBid(au.id);
+    const floor = Math.max(au.currentPrice, prev ? prev.amount : 0);
+    if (amt <= floor) {
+      return { ok: false, message: "現在価格 " + floor.toLocaleString("ja-JP") + " pt より高い金額を入力してください。" };
+    }
+    const me = user(uid);
+    const mineFrozen = prev && prev.userId === uid ? prev.amount : 0;
+    const available = me.balance + mineFrozen;
+    if (amt > available) {
+      return {
+        ok: false,
+        message: "ポイントが足りません。必要 " + amt.toLocaleString("ja-JP") + " pt / 使える " + available.toLocaleString("ja-JP") + " pt",
+        needsPoints: true
+      };
+    }
+
+    /* --- 受理：入札履歴・残高・返却・現在価格をまとめて処理 --- */
+    const bid = {
+      id: nextId("b"),
+      auctionId: au.id,
+      userId: uid,
+      amount: amt,
+      kind: kind || "manual",
+      createdAt: iso(now())
+    };
+    state.bids.push(bid);
+    credit(uid, "bid", -amt, "入札（" + artworkLabel(au) + "）");
+
+    if (prev && prev.userId !== uid) {
+      credit(prev.userId, "refund", prev.amount, "高値更新の返却（" + artworkLabel(au) + "）");
+      notify(prev.userId, "outbid", "最高額を更新されました",
+        artworkLabel(au) + " の最高額が " + amt.toLocaleString("ja-JP") + " pt になりました。入札した " + prev.amount.toLocaleString("ja-JP") + " pt は返却されました。",
+        { artworkId: au.artworkId, auctionId: au.id });
+    }
+    au.currentPrice = amt;
+    notify(uid, "bid", "入札を受け付けました",
+      artworkLabel(au) + " に " + amt.toLocaleString("ja-JP") + " pt で入札しました。現在価格は " + amt.toLocaleString("ja-JP") + " pt です。",
+      { artworkId: au.artworkId, auctionId: au.id });
+
+    persist();
+    if (!skipAuto) resolveAutoBids(au.id);
+    persist();
+    return { ok: true, bid: bid, auction: getAuction(au.id) };
+  }
+
+  function artworkLabel(au) {
+    const art = getArtwork(au.artworkId);
+    return art ? "「" + (art.title || "無題") + "」" : "作品";
+  }
+
+  /* 自動入札：他人の入札に対して、上限額の範囲で上乗せする */
+  function resolveAutoBids(auctionId) {
+    let guard = 0;
+    while (guard++ < 40) {
+      const au = getAuction(auctionId);
+      if (!au || au.status !== "active") return;
+      const top = topBid(auctionId);
+      if (!top) return;
+      const candidates = state.autoBids
+        .filter((x) => x.auctionId === auctionId && x.active && x.userId !== top.userId && x.maxAmount > top.amount)
+        .sort((a, b) => b.maxAmount - a.maxAmount || Date.parse(a.createdAt) - Date.parse(b.createdAt));
+      const c = candidates[0];
+      if (!c) return;
+      const bidder = user(c.userId);
+      const available = bidder ? bidder.balance : 0;
+      let target = Math.min(c.maxAmount, top.amount + INCREMENT);
+      if (available < target) target = Math.min(c.maxAmount, available);
+      if (target <= top.amount) {
+        c.active = false;                     // 上限または残高に届かないので降りる
+        continue;
+      }
+      const res = placeBid(auctionId, target, "auto", c.userId, true);
+      if (!res.ok) { c.active = false; return; }
+    }
+  }
+
+  function setAutoBid(auctionId, userId, maxAmount, skipResolve) {
+    const au = getAuction(auctionId);
+    if (!au) return { ok: false, message: "オークションが見つかりません。" };
+    const uid = userId || (currentUser() && currentUser().id);
+    if (!uid) return { ok: false, message: "ログインが必要です。" };
+    const max = Math.floor(Number(maxAmount));
+    if (au.status !== "active") return { ok: false, message: "終了したオークションには自動入札を設定できません。" };
+    if (remainingMs(au) <= 0) return { ok: false, message: "終了日時を過ぎています。" };
+    if (au.sellerId === uid) return { ok: false, message: "自分の出品には自動入札を設定できません。" };
+    if (!Number.isFinite(max) || max <= au.currentPrice) {
+      return { ok: false, message: "上限額は現在価格 " + au.currentPrice.toLocaleString("ja-JP") + " pt より大きい金額にしてください。" };
+    }
+    const me = user(uid);
+    if (max > me.balance + (topBid(au.id) && topBid(au.id).userId === uid ? topBid(au.id).amount : 0)) {
+      return { ok: false, message: "上限額が保有ポイントを超えています。上限は " + me.balance.toLocaleString("ja-JP") + " pt までです。" };
+    }
+    if (autoBidOf(au.id, uid)) return { ok: false, message: "この作品にはすでに自動入札を設定しています。" };
+
+    const row = {
+      id: nextId("ab"),
+      auctionId: au.id,
+      userId: uid,
+      maxAmount: max,
+      active: true,
+      createdAt: iso(now())
+    };
+    state.autoBids.push(row);
+    notify(uid, "auto", "自動入札を設定しました",
+      artworkLabel(au) + " に上限 " + max.toLocaleString("ja-JP") + " pt の自動入札を設定しました。他の人が入札すると、この範囲で自動的に競り上がります。",
+      { artworkId: au.artworkId, auctionId: au.id });
+    persist();
+    if (!skipResolve) { resolveAutoBids(au.id); persist(); }
+    return { ok: true, auto: row };
+  }
+
+  /* ---------- 終了・落札 ---------- */
+  function closeExpired(quiet) {
+    let changed = false;
+    state.auctions.forEach((au) => {
+      if (au.status !== "active") return;
+      if (remainingMs(au) > 0) return;
+      const top = topBid(au.id);
+      au.status = "closed";
+      state.autoBids.forEach((x) => { if (x.auctionId === au.id) x.active = false; });
+      if (top) {
+        au.winnerBidId = top.id;
+        au.finalPrice = top.amount;
+        notify(top.userId, "won", "落札しました",
+          artworkLabel(au) + " を " + top.amount.toLocaleString("ja-JP") + " pt で落札しました。落札額は入札時に差し引かれているため、追加の引き落としはありません。",
+          { artworkId: au.artworkId, auctionId: au.id });
+        notify(au.sellerId, "sold", "落札されました",
+          artworkLabel(au) + " が " + top.amount.toLocaleString("ja-JP") + " pt で落札されました。",
+          { artworkId: au.artworkId, auctionId: au.id });
+      } else {
+        au.winnerBidId = null;
+        au.finalPrice = null;
+        notify(au.sellerId, "unsold", "入札がないまま終了しました",
+          artworkLabel(au) + " は入札がないまま終了しました。Ver0.5 では再出品できません。",
+          { artworkId: au.artworkId, auctionId: au.id });
+      }
+      changed = true;
+      if (!quiet) console.info("オークションを終了しました:", au.id);
+    });
+    if (changed) persist();
+    return changed;
+  }
+
+  /* ---------- お気に入り ---------- */
+  function toggleFavWork(artworkId) {
+    const u = currentUser();
+    if (!u) return { ok: false, message: "お気に入りの登録にはログインが必要です。" };
+    const i = state.favWorks.findIndex((f) => f.userId === u.id && f.artworkId === artworkId);
+    if (i >= 0) { state.favWorks.splice(i, 1); persist(); return { ok: true, on: false, message: "作品のお気に入りを解除しました。" }; }
+    state.favWorks.push({ userId: u.id, artworkId: artworkId, createdAt: iso(now()) });
+    persist();
+    return { ok: true, on: true, message: "作品をお気に入りに登録しました。" };
+  }
+
+  function toggleFavAuction(auctionId) {
+    const u = currentUser();
+    if (!u) return { ok: false, message: "お気に入りの登録にはログインが必要です。" };
+    const i = state.favAuctions.findIndex((f) => f.userId === u.id && f.auctionId === auctionId);
+    if (i >= 0) { state.favAuctions.splice(i, 1); persist(); return { ok: true, on: false, message: "オークションのお気に入りを解除しました。" }; }
+    state.favAuctions.push({ userId: u.id, auctionId: auctionId, createdAt: iso(now()) });
+    persist();
+    return { ok: true, on: true, message: "オークションをお気に入りに登録しました。" };
+  }
+
+  function favWorksOf(userId) {
+    return state.favWorks
+      .filter((f) => f.userId === userId)
+      .map((f) => getArtwork(f.artworkId))
+      .filter(Boolean);
+  }
+  function favAuctionsOf(userId) {
+    return state.favAuctions
+      .filter((f) => f.userId === userId)
+      .map((f) => getAuction(f.auctionId))
+      .filter(Boolean);
+  }
+
+  /* ---------- ボーナスポイント ---------- */
+  function bonusItems(userId) {
+    const b = state.bonus[userId] || { signup: false, draw: false, list: false };
+    const arts = artworksOf(userId);
+    return [
+      { key: "signup", label: "ユーザー登録", amount: BONUS.signup, done: true, granted: !!b.signup, hint: "登録した時点で付与します。" },
+      { key: "draw", label: "はじめて絵を描く", amount: BONUS.draw, done: arts.length > 0, granted: !!b.draw, hint: "下書きを 1 件保存すると受け取れます。" },
+      { key: "list", label: "はじめて出品する", amount: BONUS.list, done: listingsOf(userId).length > 0, granted: !!b.list, hint: "作品を 1 件出品すると受け取れます。" }
+    ];
+  }
+
+  function claimBonus(key) {
+    const u = currentUser();
+    if (!u) return { ok: false, message: "ログインが必要です。" };
+    const item = bonusItems(u.id).find((i) => i.key === key);
+    if (!item) return { ok: false, message: "対象のボーナスが見つかりません。" };
+    if (item.granted) return { ok: false, message: "すでに受け取り済みです。" };
+    if (!item.done) return { ok: false, message: "条件を満たしていません。" };
+    state.bonus[u.id][key] = true;
+    credit(u.id, "bonus", item.amount, "ボーナスポイント（" + item.label + "）");
+    notify(u.id, "bonus", "ボーナスポイントを受け取りました",
+      item.label + " のボーナス " + item.amount + " pt を残高に反映しました。", {});
+    persist();
+    return { ok: true, amount: item.amount };
+  }
+
+  /* ---------- 公開API ---------- */
+  const api = {
+    INCREMENT: INCREMENT,
+    BONUS: BONUS,
+    init: function () {
+      if (state) return state;
+      state = load();
+      if (!state) buildSeed();
+      closeExpired(true);
+      return state;
+    },
+    reset: function () {
+      try { localStorage.removeItem(KEY); } catch (e) { /* 無視 */ }
+      memoryOnly = false;
+      state = buildSeed();
+      persist();
+      return state;
+    },
+    dump: function () { return state; },
+    isMemoryOnly: function () { return memoryOnly; },
+
+    currentUser: currentUser,
+    user: user,
+    users: function () { return state.users.slice(); },
+    register: register,
+    login: login,
+    logout: logout,
+    updateDisplayName: updateDisplayName,
+
+    tags: function () { return window.HEW_DATA.TAGS.slice(); },
+    searchWorks: searchWorks,
+    getArtwork: getArtwork,
+    getAuction: getAuction,
+    auctionOfArtwork: auctionOfArtwork,
+    bidsOf: bidsOf,
+    topBid: topBid,
+    bidCount: bidCount,
+    remainingMs: remainingMs,
+    autoBidOf: autoBidOf,
+    draftsOf: draftsOf,
+    listingsOf: listingsOf,
+    artworksOf: artworksOf,
+
+    saveDraft: saveDraft,
+    updateDraftInfo: updateDraftInfo,
+    publish: publish,
+
+    placeBid: placeBid,
+    setAutoBid: setAutoBid,
+    closeExpired: closeExpired,
+
+    toggleFavWork: toggleFavWork,
+    toggleFavAuction: toggleFavAuction,
+    isFavWork: isFavWork,
+    isFavAuction: isFavAuction,
+    favWorksOf: favWorksOf,
+    favAuctionsOf: favAuctionsOf,
+
+    noticesOf: noticesOf,
+    unreadCount: unreadCount,
+    markNoticeRead: markNoticeRead,
+    markAllRead: markAllRead,
+    mailsOf: mailsOf,
+    ledgerOf: ledgerOf,
+    credit: credit,
+
+    bonusItems: bonusItems,
+    claimBonus: claimBonus
+  };
+
+  window.HEW_STORE = api;
+})();
+
+</script>
+<script>
+/* ============================================================
+   ui.js — 画面の組み立てと操作
+   ハッシュ ルーティング + 1 つの委譲リスナーで動かす。
+   1 秒ごとの tick は「生きている数字」だけを書き換える。
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const S = window.HEW_STORE;
+  const screenEl = document.getElementById("screen");
+  const railEl = document.getElementById("rail-inner");
+  const toastRegion = document.getElementById("toast-region");
+  const dialogRoot = document.getElementById("dialog-root");
+
+  let mounted = null;      // 現在の画面インスタンス
+  let lastFocus = null;
+
+  /* ---------- 文と数字 ---------- */
+  function esc(v) {
+    return String(v === null || v === undefined ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  const jstFull = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false
+  });
+  const jstShort = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false
+  });
+
+  function fmtFull(isoStr) { return jstFull.format(new Date(isoStr)); }
+  function fmtShort(isoStr) { return jstShort.format(new Date(isoStr)); }
+  function fmtPt(n) { return Number(n || 0).toLocaleString("ja-JP"); }
+  function pct(v) { return Math.max(0, Math.min(100, v)) + "%"; }
+
+  function remainText(ms) {
+    if (ms <= 0) return "終了";
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return d + "日 " + h + "時間";
+    if (h > 0) return h + "時間 " + String(m).padStart(2, "0") + "分";
+    return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+  }
+
+  function clockText(ms) {
+    if (ms <= 0) return "00:00";
+    const s = Math.ceil(ms / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    if (m >= 60) return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+    return String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+  }
+
+  function durationLabel(sec) {
+    if (sec === 10) return "10秒";
+    if (sec === 30) return "30秒";
+    if (sec === 60) return "1分";
+    if (sec === 300) return "5分";
+    return sec + "秒";
+  }
+
+  function statusBadge(auction) {
+    if (!auction) return "";
+    if (auction.status === "active") return '<span class="badge badge-live">開催中</span>';
+    if (auction.finalPrice === null || auction.finalPrice === undefined) return '<span class="badge badge-soon">落札者なし</span>';
+    return '<span class="badge">落札済み</span>';
+  }
+
+  /* 開催中は残り時間、終了後は終了日時を出す */
+  function cdText(au) {
+    if (!au) return "—";
+    return au.status === "active" ? remainText(S.remainingMs(au)) : fmtShort(au.endsAt);
+  }
+
+  function holderName(userId) {
+    const u = S.user(userId);
+    return u ? u.displayName : "退会した利用者";
+  }
+
+  /* ---------- トースト・ダイアログ ---------- */
+  function toast(message, kind) {
+    const el = document.createElement("div");
+    el.className = "toast" + (kind ? " is-" + kind : "");
+    el.setAttribute("role", kind === "error" ? "alert" : "status");
+    el.textContent = message;
+    toastRegion.appendChild(el);
+    window.setTimeout(function () {
+      el.style.transition = "opacity .25s ease";
+      el.style.opacity = "0";
+      window.setTimeout(function () { el.remove(); }, 260);
+    }, kind === "error" ? 5200 : 3600);
+  }
+
+  function closeDialog() {
+    dialogRoot.innerHTML = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    lastFocus = null;
+  }
+
+  function openDialog(opts) {
+    lastFocus = document.activeElement;
+    const actions = (opts.actions || []).map(function (a, i) {
+      return '<button type="button" class="btn ' + (a.kind === "primary" ? "btn-primary" : a.kind === "live" ? "btn-live" : "") +
+        '" data-dlg="' + i + '">' + esc(a.label) + "</button>";
+    }).join("");
+
+    dialogRoot.innerHTML =
+      '<div class="dialog-backdrop" data-dlg-close="1">' +
+        '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">' +
+          '<h2 class="h2" id="dlg-title">' + esc(opts.title) + "</h2>" +
+          '<div class="dialog-body">' + (opts.body || "") + "</div>" +
+          '<div class="btn-row" style="margin-top:18px">' + actions + "</div>" +
+        "</div>" +
+      "</div>";
+
+    const panel = dialogRoot.querySelector(".dialog");
+    dialogRoot.querySelectorAll("[data-dlg]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const a = opts.actions[Number(btn.dataset.dlg)];
+        closeDialog();
+        if (a && a.onSelect) a.onSelect();
+      });
+    });
+    dialogRoot.querySelector("[data-dlg-close]").addEventListener("mousedown", function (e) {
+      if (e.target === e.currentTarget) { closeDialog(); if (opts.onDismiss) opts.onDismiss(); }
+    });
+    panel.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeDialog(); if (opts.onDismiss) opts.onDismiss(); }
+      if (e.key === "Tab") {
+        const f = panel.querySelectorAll("button, [href], input, select, textarea");
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+    const focusTarget = panel.querySelector("input, textarea, select") || panel.querySelector("button");
+    if (focusTarget) focusTarget.focus();
+  }
+
+  /* ---------- ヘッダ ---------- */
+  function currentPath() {
+    const raw = (location.hash || "#/").replace(/^#/, "");
+    return raw.split("?")[0] || "/";
+  }
+
+  function renderRail() {
+    const u = S.currentUser();
+    const path = currentPath();
+    const link = function (href, label, extra) {
+      return '<a class="rail-link" href="' + href + '"' +
+        (path === href.replace("#", "") ? ' aria-current="page"' : "") + ">" + label + (extra || "") + "</a>";
+    };
+
+    let nav = link("#/", "作品を探す") + link("#/draw", "絵を描く");
+    if (u) {
+      const unread = S.unreadCount(u.id);
+      nav += link("#/bonus", "ボーナス");
+      nav += link("#/notices", "通知", unread ? '<span class="count-dot">' + unread + "</span>" : "");
+      nav += link("#/account", "アカウント");
+      nav += '<a class="wallet-chip" href="#/account"><span class="pt">保有</span>' + fmtPt(u.balance) + " pt</a>";
+      nav += '<button type="button" class="rail-link" data-act="logout">ログアウト</button>';
+    } else {
+      nav += link("#/login", "ログイン");
+      nav += '<a class="btn btn-primary btn-sm" href="#/register">新規登録</a>';
+    }
+
+    railEl.innerHTML =
+      '<a class="brand" href="#/">' +
+        '<span class="brand-mark" aria-hidden="true"></span>' +
+        '<span class="brand-word">HEW</span>' +
+        '<span class="brand-sub">時間内に描く<br>絵のオークション</span>' +
+      "</a>" +
+      '<nav class="rail-nav" aria-label="主要メニュー">' + nav + "</nav>";
+  }
+
+  /* ---------- 部品 ---------- */
+  function ticketCard(row, opts) {
+    const art = row.artwork;
+    const au = row.auction;
+    const o = opts || {};
+    const active = au && au.status === "active";
+    const priceValue = au
+      ? (au.finalPrice !== null && au.finalPrice !== undefined ? au.finalPrice : au.currentPrice)
+      : null;
+    const priceLabel = au && au.status === "closed"
+      ? (au.finalPrice === null ? "入札なし" : "落札額")
+      : "現在価格";
+
+    return '<article class="ticket' + (o.rise ? " rise" : "") + '">' +
+      '<a class="ticket-link" href="#/work/' + art.id + '">' +
+        '<div class="ticket-plate">' +
+          '<span class="ticket-hole" aria-hidden="true"></span>' +
+          '<img src="' + art.image + '" alt="' + esc(art.title || "無題の下書き") + ' の絵" loading="lazy">' +
+        "</div>" +
+        '<div class="ticket-body">' +
+          '<div class="stamp-row">' + art.tags.map(function (t) {
+            return '<span class="stamp">' + esc(t) + "</span>";
+          }).join("") + "</div>" +
+          '<h3 class="ticket-title">' + esc(art.title || "無題") + "</h3>" +
+          '<p class="small muted">作者 ' + esc(holderName(art.sellerId)) + " · " + durationLabel(art.drawSeconds) + "で描画</p>" +
+          '<div class="ticket-foot">' +
+            '<div><span class="label">' + (active ? "残り" : "終了") + "</span>" +
+              '<span class="data" data-cd="' + (au ? au.id : "") + '">' + cdText(au) + "</span>" +
+            "</div>" +
+            '<div class="price-tag' + (active ? "" : " is-quiet") + '">' +
+              '<span class="pt-label">' + priceLabel + "</span>" +
+              '<span class="pt-value">' + (priceValue === null ? "—" : fmtPt(priceValue) + " pt") + "</span>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+      "</a>" +
+    "</article>";
+  }
+
+  function strokeTrack(auction) {
+    const total = Date.parse(auction.endsAt) - Date.parse(auction.createdAt);
+    const remain = S.remainingMs(auction);
+    const elapsed = Math.max(0, Math.min(total, total - remain));
+    const w = total > 0 ? (elapsed / total) * 100 : 100;
+    const urgent = auction.status === "active" && remain < 5 * 60 * 1000;
+    return '<div class="stroke-track' + (urgent ? " is-urgent" : "") + '" data-stroke="' + auction.id + '">' +
+      '<span style="width:' + pct(w) + '"></span></div>';
+  }
+
+  /* ---------- 空の画面 ---------- */
+  function emptyState(title, body, actionHtml) {
+    return '<div class="empty-state">' +
+      '<h3 class="h3">' + esc(title) + "</h3>" +
+      "<p>" + body + "</p>" +
+      (actionHtml || "") +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：ホーム（作品を探す）
+     ============================================================ */
+  function viewHome(query) {
+    const tags = (query.tags ? query.tags.split(",") : []).filter(Boolean);
+    const sort = query.sort || "ending";
+    const stateFilter = query.state || "all";
+
+    const rows = S.searchWorks({ tags: tags, sort: sort, state: stateFilter });
+    const activeRows = S.searchWorks({ tags: [], sort: "ending", state: "active" });
+    const all = S.searchWorks({ tags: [], sort: "new", state: "all" });
+    const spotlight = activeRows[0] || null;
+
+    const heroSide = spotlight
+      ? '<div class="panel live-plate tombo-frame rise rise-1">' +
+          '<div class="panel-head">' +
+            '<p class="label" style="margin:0">いま競り中の一枚</p>' +
+            statusBadge(spotlight.auction) +
+          "</div>" +
+          '<a class="ticket-link" href="#/work/' + spotlight.artwork.id + '">' +
+            '<div class="ticket-plate"><img src="' + spotlight.artwork.image + '" alt="' +
+              esc(spotlight.artwork.title) + ' の絵"></div>' +
+          "</a>" +
+          '<div class="live-meta">' +
+            '<div>' +
+              '<p class="h3">' + esc(spotlight.artwork.title) + "</p>" +
+              '<p class="small muted">作者 ' + esc(holderName(spotlight.artwork.sellerId)) + "</p>" +
+            "</div>" +
+            '<div class="price-tag">' +
+              '<span class="pt-label">現在価格</span>' +
+              '<span class="pt-value">' + fmtPt(spotlight.auction.currentPrice) + " pt</span>" +
+            "</div>" +
+          "</div>" +
+          '<div class="live-clock">' +
+            '<span class="clock-label">終了まで</span>' +
+            '<span class="clock-value mono" data-cd="' + spotlight.auction.id + '">' +
+              remainText(S.remainingMs(spotlight.auction)) + "</span>" +
+          "</div>" +
+          strokeTrack(spotlight.auction) +
+          '<div class="btn-row" style="margin-top:14px">' +
+            '<a class="btn btn-live" href="#/work/' + spotlight.artwork.id + '">入札する</a>' +
+            '<a class="btn btn-ghost" href="#/account?tab=fav-auctions">お気に入りの一覧</a>' +
+          "</div>" +
+        "</div>"
+      : '<div class="panel rise rise-1">' +
+          '<div class="panel-head"><p class="label" style="margin:0">いま競り中の一枚</p>' +
+            '<span class="badge badge-soon">開催中なし</span>' +
+          "</div>" +
+          emptyState("開催中のオークションはありません",
+            "だれかが出品すると、ここにいちばん早く終わる作品が出ます。自分で描いて出品することもできます。",
+            '<a class="btn btn-primary" href="#/draw">絵を描く</a>') +
+        "</div>";
+
+    const stampRow = S.tags().map(function (t) {
+      const on = tags.indexOf(t) >= 0;
+      return '<button type="button" class="stamp" data-act="tag" data-tag="' + esc(t) + '" aria-pressed="' + on + '">' + esc(t) + "</button>";
+    }).join("");
+
+    const sortOptions = [
+      ["ending", "終了が近い順"],
+      ["new", "新着順"],
+      ["price", "現在価格が高い順"]
+    ].map(function (o) {
+      return '<option value="' + o[0] + '"' + (sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("");
+
+    const stateOptions = [
+      ["all", "すべて"],
+      ["active", "開催中のみ"],
+      ["ended", "終了済みのみ"]
+    ].map(function (o) {
+      return '<option value="' + o[0] + '"' + (stateFilter === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("");
+
+    const body = rows.length
+      ? '<div class="grid-plates">' + rows.map(function (r, i) {
+          return ticketCard(r, { rise: i < 6 });
+        }).join("") + "</div>"
+      : emptyState("条件に合う作品がありません",
+          tags.length
+            ? "選んだタグ「" + esc(tags.join("・")) + "」をすべて持つ作品は見つかりませんでした。タグを減らすか、絞り込みを解除してください。"
+            : "まだ出品された作品がありません。最初の一枚を描いて出品してみましょう。",
+          '<div class="btn-row"><button type="button" class="btn" data-act="clear-tags">絞り込みを解除する</button>' +
+          '<a class="btn btn-primary" href="#/draw">絵を描く</a></div>');
+
+    return '<div class="wrap">' +
+      '<section class="hero">' +
+        '<div class="hero-copy">' +
+          '<p class="eyebrow rise">HEW · 要件定義書 Ver 0.5</p>' +
+          '<h1 class="rise rise-1">時間のなかで描いた<br class="hero-br">一枚を、競りにかける。</h1>' +
+          '<div class="hero-stroke rise rise-1" aria-hidden="true"><span></span></div>' +
+          '<p class="lede rise rise-2">10秒・30秒・1分・5分。選んだ時間で描き、下書きとして保存し、好きなときに出品します。入札はポイントで行い、終了日時のいちばん高い入札が落とします。</p>' +
+          '<div class="btn-row rise rise-2">' +
+            '<a class="btn btn-primary" href="#/draw">絵を描く</a>' +
+            '<button type="button" class="btn" data-act="jump" data-target="catalogue">出品中の作品を見る</button>' +
+          "</div>" +
+          '<div class="hero-facts rise rise-3">' +
+            "<span>開催中 <b>" + activeRows.length + "</b> 件</span>" +
+            "<span>出品作品 <b>" + all.length + "</b> 件</span>" +
+            "<span>制限時間 <b>10秒 / 30秒 / 1分 / 5分</b></span>" +
+            "<span>入札 <b>ポイント制</b></span>" +
+          "</div>" +
+        "</div>" +
+        heroSide +
+      "</section>" +
+
+      '<section class="section" id="catalogue">' +
+        '<div class="section-head">' +
+          '<h2 class="h2">出品中の作品から一枚を探す</h2>' +
+          '<span class="section-count">' + rows.length + " 件表示 / 全 " + all.length + " 件</span>" +
+        "</div>" +
+        '<div class="filter-bar">' +
+          '<div class="filter-block">' +
+            '<span class="label">タグで絞り込む（選んだタグをすべて含む作品を表示）</span>' +
+            '<div class="stamp-row">' + stampRow + "</div>" +
+          "</div>" +
+          '<div class="filter-block">' +
+            '<label class="label" for="f-sort">並び順</label>' +
+            '<select class="select" id="f-sort" data-act="sort">' + sortOptions + "</select>" +
+          "</div>" +
+          '<div class="filter-block">' +
+            '<label class="label" for="f-state">状態</label>' +
+            '<select class="select" id="f-state" data-act="state">' + stateOptions + "</select>" +
+          "</div>" +
+        "</div>" +
+        body +
+      "</section>" +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：商品詳細（画面内で入札）
+     ============================================================ */
+  function viewWork(artworkId) {
+    const art = S.getArtwork(artworkId);
+    if (!art || art.status === "draft") {
+      return notFound("作品が見つかりません", "この作品は非公開か、削除されています。下書きは作者だけが閲覧できます。");
+    }
+    const au = S.auctionOfArtwork(art.id);
+    const me = S.currentUser();
+    const isSeller = me && me.id === art.sellerId;
+    const top = au ? S.topBid(au.id) : null;
+    const count = au ? S.bidCount(au.id) : 0;
+    const active = au && au.status === "active" && S.remainingMs(au) > 0;
+
+    const price = au ? (au.finalPrice !== null && au.finalPrice !== undefined ? au.finalPrice : au.currentPrice) : 0;
+    const priceLabel = au && au.status === "closed"
+      ? (au.finalPrice === null ? "開始価格（入札なし）" : "落札額")
+      : "現在価格";
+
+    /* 入札フォーム */
+    let bidBlock = "";
+    if (!au) {
+      bidBlock = '<p class="muted small">この作品にはオークションが設定されていません。</p>';
+    } else if (!active) {
+      bidBlock = '<div class="notice-ink">' +
+        "<p><b>このオークションは終了しました。</b></p>" +
+        "<p class=\"small\">" + (au.finalPrice === null
+          ? "入札がなかったため、落札者なしで終了しました。Ver0.5 では再出品できません。"
+          : "落札者 " + esc(holderName(top ? top.userId : "")) + " / 確定額 " + fmtPt(au.finalPrice) + " pt") + "</p>" +
+        "</div>";
+      if (au.finalPrice !== null) {
+        bidBlock += '<p class="help">落札額は入札の時点で差し引かれているため、落札確定による追加の引き落としはありません。</p>';
+      }
+    } else if (!me) {
+      bidBlock = '<div class="notice-ink">' +
+        "<p><b>入札にはログインが必要です。</b></p>" +
+        '<p class="small">ゲストは公開作品の閲覧とタグ検索のみ利用できます。</p>' +
+        '<div class="btn-row" style="margin-top:10px">' +
+          '<a class="btn btn-primary" href="#/login">ログインする</a>' +
+          '<a class="btn btn-ghost" href="#/register">新規登録</a>' +
+        "</div></div>";
+    } else if (isSeller) {
+      bidBlock = '<div class="notice-ink"><p><b>自分の出品には入札できません。</b></p>' +
+        '<p class="small">ほかの利用者の入札を待つか、アカウント画面から出品内容を確認してください。</p></div>';
+    } else {
+      const mineFrozen = top && top.userId === me.id ? top.amount : 0;
+      const available = me.balance + mineFrozen;
+      const minNext = au.currentPrice + 1;
+      const quick = [10, 50, 100, 500].map(function (add) {
+        return '<button type="button" class="btn btn-ghost btn-sm" data-act="bid-quick" data-add="' + add + '">+' +
+          fmtPt(add) + "</button>";
+      }).join("");
+      bidBlock =
+        '<form id="bid-form" data-auction="' + au.id + '" novalidate>' +
+          '<div class="field">' +
+            '<label class="label" for="bid-amount">入札額（pt）</label>' +
+            '<input class="input input-data" type="number" id="bid-amount" name="amount" min="' + minNext +
+              '" step="1" inputmode="numeric" value="' + minNext + '" required>' +
+            '<div class="btn-row" style="margin-top:8px">' + quick + "</div>" +
+            '<p class="help">現在価格 ' + fmtPt(au.currentPrice) + " pt より大きい金額を入力してください。" +
+              "開始価格は " + fmtPt(au.startPrice) + " pt、あなたが使えるのは " + fmtPt(available) + " pt です。</p>" +
+          "</div>" +
+          '<div id="bid-feedback" class="small" role="status" aria-live="polite"></div>' +
+          '<div class="btn-row"><button type="submit" class="btn btn-live">この金額で入札する</button>' +
+            '<a class="btn btn-ghost btn-sm" href="#/charge">ポイントを増やす</a></div>' +
+        "</form>" +
+        '<hr class="rule" style="margin:18px 0">' +
+        '<form id="auto-form" data-auction="' + au.id + '" novalidate>' +
+          '<div class="field">' +
+            '<label class="label" for="auto-max">自動入札の上限額（pt）</label>' +
+            '<input class="input input-data" type="number" id="auto-max" name="max" min="' + (au.currentPrice + 1) +
+              '" step="1" inputmode="numeric" placeholder="例: ' + (au.currentPrice + 200) + '">' +
+            '<p class="help">他の人が入札すると、上限額の範囲で ' + S.INCREMENT +
+              " pt ずつ自動的に競り上がります。上限額が同じときは、先に設定した人の入札が残ります。</p>" +
+          "</div>" +
+          '<div id="auto-feedback" class="small" role="status" aria-live="polite"></div>' +
+          '<div class="btn-row"><button type="submit" class="btn">自動入札を設定する</button></div>' +
+        "</form>";
+    }
+
+    const myAuto = me && au ? S.autoBidOf(au.id, me.id) : null;
+    const autoNote = myAuto
+      ? '<div class="status-line"><span class="badge badge-live">自動入札 設定済み</span>' +
+        '<span class="mono">上限 ' + fmtPt(myAuto.maxAmount) + " pt · " + fmtShort(myAuto.createdAt) + " 設定</span></div>"
+      : "";
+
+    const historyRows = au && count
+      ? S.bidsOf(au.id).map(function (b) {
+          const mine = me && b.userId === me.id;
+          return '<div class="ledger-row' + (mine ? " is-me" : "") + '" style="--ledger-cols:96px 1fr 108px">' +
+            '<span class="mono faint">' + fmtShort(b.createdAt) + "</span>" +
+            "<span>" + esc(holderName(b.userId)) + (mine ? "（あなた）" : "") +
+              (b.kind === "auto" ? ' <span class="badge">自動</span>' : "") + "</span>" +
+            '<span class="ledger-amount" style="text-align:right">' + fmtPt(b.amount) + " pt</span>" +
+          "</div>";
+        }).join("")
+      : '<div class="ledger-empty">まだ入札はありません。開始価格 ' + fmtPt(au ? au.startPrice : 0) + " pt から受け付けます。</div>";
+
+    const favPressedWork = me ? S.isFavWork(me.id, art.id) : false;
+    const favPressedAu = me && au ? S.isFavAuction(me.id, au.id) : false;
+
+    return '<div class="wrap">' +
+      '<div class="crumbs"><a href="#/">作品を探す</a> / 商品詳細</div>' +
+      '<div class="work-head">' +
+        "<div>" +
+          '<h1 class="work-title">' + esc(art.title || "無題") + "</h1>" +
+          '<p class="muted small">作者 ' + esc(holderName(art.sellerId)) + " · " + durationLabel(art.drawSeconds) +
+            "で描画 · 出品 " + fmtFull(art.listedAt || art.createdAt) + "（日本時間）</p>" +
+        "</div>" +
+        '<div class="btn-row">' + statusBadge(au) +
+          (me ? '<button type="button" class="btn btn-sm" data-act="fav-work" data-id="' + art.id +
+            '" aria-pressed="' + favPressedWork + '">' + (favPressedWork ? "★ 作品のお気に入り済み" : "☆ 作品をお気に入り") + "</button>" : "") +
+          (me && au ? '<button type="button" class="btn btn-sm" data-act="fav-auction" data-id="' + au.id +
+            '" aria-pressed="' + favPressedAu + '">' + (favPressedAu ? "★ オークションお気に入り済み" : "☆ オークションをお気に入り") + "</button>" : "") +
+        "</div>" +
+      "</div>" +
+
+      '<div class="layout-aside">' +
+        "<div>" +
+          '<div class="artwork-frame tombo-frame">' +
+            '<img src="' + art.image + '" alt="' + esc(art.title || "無題") + ' の絵">' +
+            '<div class="artwork-caption">' +
+              "<span>作品ID " + esc(art.id) + "</span>" +
+              "<span>描画 " + durationLabel(art.drawSeconds) + " · 保存 " + fmtFull(art.createdAt) + "</span>" +
+            "</div>" +
+          "</div>" +
+          '<div class="panel" style="margin-top:18px">' +
+            '<div class="panel-head"><h2 class="h3">作品について</h2></div>' +
+            '<p style="margin-bottom:14px">' + (art.description ? esc(art.description) : '<span class="muted">説明はありません。</span>') + "</p>" +
+            '<div class="stamp-row">' + art.tags.map(function (t) {
+              return '<span class="stamp">' + esc(t) + "</span>";
+            }).join("") + "</div>" +
+            '<dl class="deflist" style="margin-top:16px">' +
+              "<dt>出品者</dt><dd>" + esc(holderName(art.sellerId)) + "</dd>" +
+              "<dt>出品日時</dt><dd class=\"data\">" + fmtFull(art.listedAt || art.createdAt) + "（日本時間）</dd>" +
+              "<dt>入札件数</dt><dd class=\"data\">" + count + " 件</dd>" +
+            "</dl>" +
+          "</div>" +
+        "</div>" +
+
+        "<div>" +
+          '<div class="panel tombo-frame">' +
+            '<div class="panel-head">' +
+              '<p class="label" style="margin:0">' + priceLabel + "</p>" +
+              statusBadge(au) +
+            "</div>" +
+            '<div class="bid-price">' +
+              '<span class="value">' + fmtPt(price) + '</span><span class="unit">pt</span>' +
+            "</div>" +
+            (au ? '<div class="live-clock' + (active ? "" : " is-closed") + '" style="margin-top:14px">' +
+              '<span class="clock-label">' + (active ? "終了まで" : "終了日時") + "</span>" +
+              '<span class="clock-value mono" data-cd="' + au.id + '">' +
+                (active ? remainText(S.remainingMs(au)) : fmtShort(au.endsAt)) + "</span>" +
+            "</div>" + strokeTrack(au) : "") +
+            (au ? '<dl class="deflist" style="margin-top:16px">' +
+              "<dt>開始価格</dt><dd class=\"data\">" + fmtPt(au.startPrice) + " pt</dd>" +
+              "<dt>終了日時</dt><dd class=\"data\">" + fmtFull(au.endsAt) + "（日本時間）</dd>" +
+              "<dt>現在の最高</dt><dd class=\"data\">" + (top ? esc(holderName(top.userId)) + " / " + fmtPt(top.amount) + " pt" : "入札なし") + "</dd>" +
+              (me ? "<dt>保有ポイント</dt><dd class=\"data\">" + fmtPt(me.balance) + " pt</dd>" : "") +
+            "</dl>" : "") +
+            autoNote +
+            '<hr class="rule" style="margin:18px 0">' +
+            bidBlock +
+          "</div>" +
+
+          '<div class="panel" style="margin-top:18px">' +
+            '<div class="panel-head"><h2 class="h3">入札の履歴</h2>' +
+              '<span class="section-count">' + count + " 件</span></div>" +
+            (count ? '<div class="ledger-head" style="--ledger-cols:96px 1fr 108px">' +
+              "<span>時刻</span><span>入札者</span><span style=\"text-align:right\">金額</span></div>" : "") +
+            historyRows +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：絵を描く
+     ============================================================ */
+  const PENS = [
+    { key: "maru", label: "丸ペン" },
+    { key: "gpen", label: "Ｇペン" },
+    { key: "blur", label: "ぼかし" },
+    { key: "eraser", label: "消しゴム" }
+  ];
+  const COLORS = [
+    { key: "#16181c", label: "墨" },
+    { key: "#27407f", label: "藍" },
+    { key: "#b3123e", label: "濃紅" },
+    { key: "#ff3d6e", label: "蛍光紅" },
+    { key: "#2f6b4f", label: "若竹" },
+    { key: "#7b6bb0", label: "藤" },
+    { key: "#c98a12", label: "黄土" },
+    { key: "#f7f6f2", label: "紙（白）" }
+  ];
+  const SIZES = [{ v: 2, label: "細" }, { v: 4, label: "中" }, { v: 8, label: "太" }];
+  const DURATIONS = [
+    { v: 10, label: "10秒" },
+    { v: 30, label: "30秒" },
+    { v: 60, label: "1分" },
+    { v: 300, label: "5分" }
+  ];
+
+  function viewDraw() {
+    const me = S.currentUser();
+    if (!me) {
+      return '<div class="wrap section">' +
+        '<div class="section-head"><h1 class="h2">絵を描く</h1></div>' +
+        emptyState("絵を描くにはログインが必要です",
+          "描いた絵は下書きとしてあなたのアカウントに保存され、あとから出品情報を設定できます。",
+          '<div class="btn-row"><a class="btn btn-primary" href="#/login">ログインする</a>' +
+          '<a class="btn" href="#/register">新規登録</a></div>') +
+      "</div>";
+    }
+
+    const dur = DURATIONS.map(function (d, i) {
+      return '<button type="button" class="stamp" data-dur="' + d.v + '" aria-pressed="' + (i === 0) + '">' + d.label + "</button>";
+    }).join("");
+    const pens = PENS.map(function (p, i) {
+      return '<button type="button" class="stamp" data-pen="' + p.key + '" aria-pressed="' + (i === 0) + '">' + p.label + "</button>";
+    }).join("");
+    const swatches = COLORS.map(function (c, i) {
+      return '<button type="button" class="swatch' + (c.key === "#f7f6f2" ? " swatch-paper" : "") +
+        '" data-color="' + c.key + '" title="' + c.label + '" aria-label="' + c.label +
+        '" aria-pressed="' + (i === 0) + '" style="background:' + c.key + '"></button>';
+    }).join("");
+    const sizes = SIZES.map(function (s, i) {
+      return '<button type="button" class="stamp" data-size="' + s.v + '" aria-pressed="' + (i === 1) + '">' + s.label + "</button>";
+    }).join("");
+
+    return '<div class="wrap studio">' +
+      '<div class="section-head">' +
+        '<h1 class="h2">絵を描く</h1>' +
+        '<span class="section-count">制限時間を選んでから描き始めます</span>' +
+      "</div>" +
+
+      '<div class="studio-time">' +
+        '<div class="filter-block">' +
+          '<span class="label">制限時間（開始後は変更できません）</span>' +
+          '<div class="choice-set" id="duration-set">' + dur + "</div>" +
+        "</div>" +
+        '<div class="clock" id="draw-clock">' +
+          '<span class="clock-label">残り</span>' +
+          '<span class="clock-value" id="draw-clock-value">' + clockText(DURATIONS[0].v * 1000) + "</span>" +
+        "</div>" +
+        '<div class="btn-row">' +
+          '<button type="button" class="btn btn-primary" id="draw-start">描き始める</button>' +
+          '<button type="button" class="btn btn-live" id="draw-finish" disabled>完成する（PNGで保存）</button>' +
+        "</div>" +
+      "</div>" +
+
+      '<div class="stroke-track" id="draw-stroke" style="margin-top:14px"><span></span></div>' +
+
+      '<div class="canvas-stage tombo-frame">' +
+        '<div class="studio-tools">' +
+          '<div class="tool-group"><span class="label">ペン</span><div class="choice-set" id="pen-set">' + pens + "</div></div>" +
+          '<div class="tool-group"><span class="label">太さ</span><div class="choice-set" id="size-set">' + sizes + "</div></div>" +
+          '<div class="tool-group"><span class="label">色</span><div class="swatches" id="color-set">' + swatches + "</div></div>" +
+          '<div class="tool-group"><span class="label">操作</span><div class="choice-set">' +
+            '<button type="button" class="stamp" id="draw-undo">取り消す</button>' +
+            '<button type="button" class="stamp" id="draw-clear">全部消す</button>' +
+          "</div></div>" +
+        "</div>" +
+        '<div class="canvas-frame" id="canvas-frame" style="margin-top:14px">' +
+          '<canvas id="canvas" width="1000" height="750" aria-label="描画キャンバス"></canvas>' +
+          '<div class="canvas-veil" id="canvas-veil">' +
+            "<p><b>制限時間を選んで「描き始める」を押してください。</b><br>" +
+            '<span class="small">時間切れ、または「完成する」で PNG として下書き保存します。保存した絵に加筆はできません。</span></p>' +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+
+      '<p class="help" style="margin-top:14px">マウス・タッチ・ペンで描けます。保存した下書きはアカウント画面の下書き一覧に入り、出品するかどうかを後から選べます。' +
+      "描画の制限時間と、オークションの終了日時は別のものです。</p>" +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：出品設定
+     ============================================================ */
+  function viewListing(artworkId) {
+    const me = S.currentUser();
+    const art = S.getArtwork(artworkId);
+    if (!me) {
+      return '<div class="wrap section">' + emptyState("出品にはログインが必要です", "ログインしてから、下書き一覧を開いてください。",
+        '<a class="btn btn-primary" href="#/login">ログインする</a>') + "</div>";
+    }
+    if (!art) return notFound("下書きが見つかりません", "すでに出品されたか、あなたの下書きではありません。");
+    if (art.sellerId !== me.id) return notFound("編集できません", "下書きは作者だけが閲覧・出品できます。");
+    if (art.status !== "draft") {
+      return '<div class="wrap section">' +
+        emptyState("この作品はすでに出品されています", "1 作品につきオークションは 1 件です。Ver0.5 では再出品・取消はできません。",
+          '<a class="btn btn-primary" href="#/work/' + art.id + '">作品ページを開く</a>') + "</div>";
+    }
+
+    const tags = S.tags().map(function (t) {
+      return '<button type="button" class="stamp" data-tag-pick="' + esc(t) + '" aria-pressed="false">' + esc(t) + "</button>";
+    }).join("");
+
+    const nowLocal = toLocalInput(new Date(Date.now() + 24 * 3600 * 1000));
+
+    return '<div class="wrap section">' +
+      '<div class="crumbs"><a href="#/account?tab=drafts">下書き一覧</a> / 出品設定</div>' +
+      '<div class="section-head"><h1 class="h2">出品設定</h1>' +
+        '<span class="section-count">公開するとオークションが始まります</span></div>' +
+
+      '<div class="layout-aside">' +
+        "<div>" +
+          '<form id="list-form" class="panel" data-artwork="' + art.id + '" novalidate>' +
+            '<div class="field">' +
+              '<label class="label" for="l-title">タイトル</label>' +
+              '<input class="input" id="l-title" name="title" maxlength="60" required placeholder="例: 放課後の自転車">' +
+              "<p class=\"help\">60 文字まで。作品一覧と作品ページに出ます。</p>" +
+            "</div>" +
+            '<div class="field">' +
+              '<label class="label" for="l-desc">説明</label>' +
+              '<textarea class="textarea" id="l-desc" name="description" maxlength="400" placeholder="描いた時間や、気に入っているところを書いておくと入札の参考になります。"></textarea>' +
+            "</div>" +
+            '<div class="field">' +
+              '<span class="label">タグ（初期登録済みのタグから複数選択）</span>' +
+              '<div class="choice-set" id="tag-pick">' + tags + "</div>" +
+              '<p class="help">同じ作品に同じタグは 1 つだけ付きます。検索では、選んだタグをすべて含む作品だけが表示されます。</p>' +
+            "</div>" +
+            '<div class="field">' +
+              '<label class="label" for="l-price">開始価格（pt）</label>' +
+              '<input class="input input-data" type="number" id="l-price" name="startPrice" min="0" step="1" inputmode="numeric" value="300" required>' +
+              '<div class="btn-row" style="margin-top:8px">' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="price-preset" data-value="0">0 pt</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="price-preset" data-value="300">300 pt</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="price-preset" data-value="500">500 pt</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="price-preset" data-value="1000">1000 pt</button>' +
+              "</div>" +
+              '<p class="help">0 以上。出品者が希望する最低額は、この開始価格で設定します（最低落札価格は使いません）。</p>' +
+            "</div>" +
+            '<div class="field">' +
+              '<label class="label" for="l-ends">終了日時（この端末の時刻で入力し、日本時間へ換算して表示します）</label>' +
+              '<input class="input input-data" type="datetime-local" id="l-ends" name="endsAt" value="' + nowLocal + '" required>' +
+              '<div class="btn-row" style="margin-top:8px">' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="ends-preset" data-min="2">デモ: 2分後</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="ends-preset" data-min="60">1時間後</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="ends-preset" data-min="1440">24時間後</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-act="ends-preset" data-min="10080">7日後</button>' +
+              "</div>" +
+              '<p class="help">終了日時で入札を締め切ります。描画が終わってもオークションは終わりません。予約開始は Ver0.5 の対象外です。</p>' +
+            "</div>" +
+            '<div id="list-feedback" class="small" role="status" aria-live="polite"></div>' +
+            '<div class="btn-row" style="margin-top:16px">' +
+              '<button type="submit" class="btn btn-primary">この内容で出品する</button>' +
+              '<button type="button" class="btn" data-act="save-draft-info">下書きとして保存する</button>' +
+              '<a class="btn btn-ghost" href="#/account?tab=drafts">下書き一覧に戻る</a>' +
+            "</div>" +
+          "</form>" +
+        "</div>" +
+
+        "<div>" +
+          '<div class="panel">' +
+            '<div class="panel-head"><h2 class="h3">出品する絵</h2>' +
+              '<span class="badge">下書き</span></div>' +
+            '<img src="' + art.image + '" alt="出品する絵" style="border:1px solid var(--ink-12);background:var(--paper-3)">' +
+            '<dl class="deflist" style="margin-top:14px">' +
+              "<dt>描画時間</dt><dd class=\"data\">" + durationLabel(art.drawSeconds) + "</dd>" +
+              "<dt>保存日時</dt><dd class=\"data\">" + fmtFull(art.createdAt) + "（日本時間）</dd>" +
+              "<dt>作品ID</dt><dd class=\"data\">" + esc(art.id) + "</dd>" +
+            "</dl>" +
+          "</div>" +
+          '<div class="panel" style="margin-top:18px">' +
+            '<div class="panel-head"><h2 class="h3">出品のルール（Ver0.5）</h2></div>' +
+            '<ul class="soon-list">' +
+              "<li><span class=\"label\" style=\"margin:0\">公開</span><span>確定した時点で公開し、オークションを開始します。</span></li>" +
+              "<li><span class=\"label\" style=\"margin:0\">本数</span><span>1 作品につきオークションは最大 1 件です。</span></li>" +
+              "<li><span class=\"label\" style=\"margin:0\">加筆</span><span>保存した絵には加筆できません。編集できるのは出品情報だけです。</span></li>" +
+              "<li><span class=\"label\" style=\"margin:0\">取消</span><span>Ver0.5 では出品・入札の取消は提供しません（Ver1 対応）。</span></li>" +
+            "</ul>" +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function toLocalInput(date) {
+    const p = function (n) { return String(n).padStart(2, "0"); };
+    return date.getFullYear() + "-" + p(date.getMonth() + 1) + "-" + p(date.getDate()) +
+      "T" + p(date.getHours()) + ":" + p(date.getMinutes());
+  }
+
+  /* ============================================================
+     画面：ログイン／新規登録
+     ============================================================ */
+  function viewAuth(mode) {
+    const isLogin = mode === "login";
+    const field = function (id, label, type, hint, autocomplete) {
+      return '<div class="field">' +
+        '<label class="label" for="' + id + '">' + label + "</label>" +
+        '<input class="input" type="' + type + '" id="' + id + '" name="' + id + '"' +
+          (autocomplete ? ' autocomplete="' + autocomplete + '"' : "") + " required>" +
+        (hint ? '<p class="help">' + hint + "</p>" : "") +
+      "</div>";
+    };
+
+    const demoUsers = S.users().filter(function (u) { return u.email.indexOf("hew.local") > 0; }).slice(0, 5);
+    const demoList = demoUsers.map(function (u) {
+      return '<div class="ledger-row" style="--ledger-cols:1fr 1fr">' +
+        '<span class="mono">' + esc(u.email) + "</span>" +
+        '<span class="mono faint">' + esc(window.HEW_DATA.DEV_PASSWORD) + "</span>" +
+      "</div>";
+    }).join("");
+
+    return '<div class="wrap section">' +
+      '<div class="layout-aside">' +
+        "<div>" +
+          '<div class="section-head"><h1 class="h2">' + (isLogin ? "ログイン" : "新規登録") + "</h1>" +
+            '<span class="section-count">メールアドレスとパスワードで認証します</span></div>' +
+          '<form id="auth-form" class="panel" novalidate>' +
+            (isLogin ? "" : field("username", "ユーザー名", "text", "20 文字まで。他の利用者と重複できません。", "username")) +
+            field("email", "メールアドレス", "email", isLogin ? "" : "確認メールによる所有確認は Ver0.5 では行いません。", "email") +
+            field("password", "パスワード", "password", isLogin ? "" : "8 文字以上。記号を混ぜると安全です。", isLogin ? "current-password" : "new-password") +
+            (isLogin ? "" : field("confirm", "パスワード（確認）", "password", "", "new-password")) +
+            '<div id="auth-feedback" class="small" role="status" aria-live="polite"></div>' +
+            '<div class="btn-row" style="margin-top:14px">' +
+              '<button type="submit" class="btn btn-primary">' + (isLogin ? "ログインする" : "登録して始める") + "</button>" +
+              '<a class="btn btn-ghost" href="' + (isLogin ? "#/register" : "#/login") + '">' +
+                (isLogin ? "アカウントを作る" : "すでにアカウントを持っている") + "</a>" +
+            "</div>" +
+            (isLogin ? "" : '<p class="help" style="margin-top:12px">表示名はユーザー名とは別に管理します。初期値はユーザー名で、アカウント画面から後で変更できます。</p>') +
+          "</form>" +
+        "</div>" +
+        "<div>" +
+          '<div class="panel">' +
+            '<div class="panel-head"><h2 class="h3">デモ用アカウント</h2>' +
+              '<span class="badge">開発用</span></div>' +
+            '<p class="small muted" style="margin-bottom:12px">入札を試すときは、このアカウントでログインしてください。' +
+              "登録した自分のアカウントで出品すると、別のアカウントから競り上げられます。</p>" +
+            '<div class="ledger-head" style="--ledger-cols:1fr 1fr"><span>メール</span><span>パスワード</span></div>' +
+            demoList +
+            '<p class="help" style="margin-top:12px">パスワードはブラウザ内に難読化して保存しています。本物の認証ではないため、実運用ではサーバー側でハッシュ化してください。</p>' +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：アカウント
+     ============================================================ */
+  function viewAccount(query) {
+    const me = S.currentUser();
+    if (!me) {
+      return '<div class="wrap section">' + emptyState("ログインすると、この画面が使えます",
+        "下書き・お気に入り・保有ポイントは、ログイン中のアカウントに表示されます。",
+        '<a class="btn btn-primary" href="#/login">ログインする</a>') + "</div>";
+    }
+    const tab = query.tab || "drafts";
+    const drafts = S.draftsOf(me.id);
+    const listings = S.listingsOf(me.id);
+    const favWorks = S.favWorksOf(me.id);
+    const favAuctions = S.favAuctionsOf(me.id);
+
+    const tabs = [
+      ["drafts", "下書き", drafts.length],
+      ["listings", "出品中・出品済み", listings.length],
+      ["fav-works", "作品のお気に入り", favWorks.length],
+      ["fav-auctions", "オークションのお気に入り", favAuctions.length]
+    ].map(function (t) {
+      return '<a class="tab" role="tab" aria-selected="' + (tab === t[0]) + '" href="#/account?tab=' + t[0] + '">' +
+        t[1] + ' <span class="mono faint">' + t[2] + "</span></a>";
+    }).join("");
+
+    let panelHtml = "";
+    if (tab === "drafts") {
+      panelHtml = drafts.length
+        ? '<div class="grid-plates">' + drafts.map(function (a) {
+            return '<article class="ticket" style="padding:14px">' +
+              '<div class="draft-card">' +
+                '<div class="draft-plate"><img src="' + a.image + '" alt="下書きの絵" loading="lazy"></div>' +
+                "<div>" +
+                  '<p class="label" style="margin-bottom:2px">下書き</p>' +
+                  '<p class="h3">' + (a.title ? esc(a.title) : "無題の下書き") + "</p>" +
+                  '<p class="small muted mono">保存 ' + fmtFull(a.createdAt) + "</p>" +
+                  '<p class="small muted">描画 ' + durationLabel(a.drawSeconds) + " · 入札の対象になっていません</p>" +
+                  '<div class="btn-row" style="margin-top:10px">' +
+                    '<a class="btn btn-primary btn-sm" href="#/list/' + a.id + '">出品設定へ進む</a>' +
+                    '<button type="button" class="btn btn-ghost btn-sm" data-act="fav-work" data-id="' + a.id + '" aria-pressed="' +
+                      (S.isFavWork(me.id, a.id) ? "true" : "false") + '">' + (S.isFavWork(me.id, a.id) ? "★ お気に入り" : "☆ お気に入り") + "</button>" +
+                  "</div>" +
+                "</div>" +
+              "</div>" +
+              '<p class="help">保存した絵に加筆はできません。編集できるのは出品情報だけです。</p>' +
+            "</article>";
+          }).join("") + "</div>"
+        : emptyState("下書きはまだありません",
+            "絵を描いて保存すると、ここに下書きが並びます。出品するかどうかは、あとから選べます。",
+            '<a class="btn btn-primary" href="#/draw">絵を描く</a>');
+    } else if (tab === "listings") {
+      panelHtml = listings.length
+        ? '<div class="grid-plates">' + listings.map(function (au) {
+            const art = S.getArtwork(au.artworkId);
+            return ticketCard({ artwork: art, auction: au });
+          }).join("") + "</div>"
+        : emptyState("出品した作品はまだありません", "下書きから出品設定へ進むと、オークションが始まります。",
+            '<a class="btn" href="#/account?tab=drafts">下書きを見る</a>');
+    } else if (tab === "fav-works") {
+      panelHtml = favWorks.length
+        ? '<div class="grid-plates">' + favWorks.map(function (a) {
+            return ticketCard({ artwork: a, auction: S.auctionOfArtwork(a.id) });
+          }).join("") + "</div>"
+        : emptyState("作品のお気に入りはまだありません", "作品ページの「☆ 作品をお気に入り」から登録できます。",
+            '<a class="btn" href="#/">作品を探す</a>');
+    } else {
+      panelHtml = favAuctions.length
+        ? '<div class="grid-plates">' + favAuctions.map(function (au) {
+            return ticketCard({ artwork: S.getArtwork(au.artworkId), auction: au });
+          }).join("") + "</div>"
+        : emptyState("オークションのお気に入りはまだありません", "商品詳細の「☆ オークションをお気に入り」から登録できます。作品のお気に入りとは別に管理します。",
+            '<a class="btn" href="#/">作品を探す</a>');
+    }
+
+    return '<div class="wrap section">' +
+      '<div class="section-head"><h1 class="h2">アカウント</h1>' +
+        '<span class="section-count">' + esc(me.email) + "</span></div>" +
+
+      '<div class="panel" style="margin-bottom:22px">' +
+        '<div class="balance-card">' +
+          "<div>" +
+            '<p class="label">保有ポイント</p>' +
+            '<p class="balance-value">' + fmtPt(me.balance) + ' <span class="unit">pt</span></p>' +
+            '<p class="small muted" style="margin-top:6px">入札に使えます。入札の受理時に差し引かれ、最高額を更新されると返却されます。</p>' +
+          "</div>" +
+          '<div class="btn-row">' +
+            '<a class="btn btn-primary" href="#/bonus">ボーナスポイント</a>' +
+            '<a class="btn" href="#/charge">チャージ画面</a>' +
+            '<a class="btn btn-ghost" href="#/notices">通知</a>' +
+          "</div>" +
+        "</div>" +
+        '<hr class="rule" style="margin:18px 0">' +
+        '<form id="profile-form" class="btn-row" style="align-items:flex-end;gap:14px">' +
+          '<div class="field" style="flex:1 1 240px;margin:0">' +
+            '<label class="label" for="p-display">表示名（ユーザー名とは別に管理）</label>' +
+            '<input class="input" id="p-display" name="displayName" maxlength="24" value="' + esc(me.displayName) + '">' +
+          "</div>" +
+          '<button type="submit" class="btn">表示名を保存する</button>' +
+          '<span id="profile-feedback" class="small" role="status" aria-live="polite"></span>' +
+        "</form>" +
+        '<dl class="deflist" style="margin-top:16px">' +
+          "<dt>ユーザー名</dt><dd>" + esc(me.username) + "</dd>" +
+          "<dt>メールアドレス</dt><dd>" + esc(me.email) + "</dd>" +
+          "<dt>登録日時</dt><dd class=\"data\">" + fmtFull(me.createdAt) + "（日本時間）</dd>" +
+        "</dl>" +
+      "</div>" +
+
+      '<div class="tabs" role="tablist">' + tabs + "</div>" +
+      panelHtml +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：通知
+     ============================================================ */
+  function viewNotices() {
+    const me = S.currentUser();
+    if (!me) {
+      return '<div class="wrap section">' + emptyState("ログインすると通知が見られます",
+        "入札・落札・返却などのお知らせを、アプリ内とメールで受け取ります。",
+        '<a class="btn btn-primary" href="#/login">ログインする</a>') + "</div>";
+    }
+    const notices = S.noticesOf(me.id);
+    const unread = S.unreadCount(me.id);
+    const mails = S.mailsOf(me.id);
+
+    const rows = notices.length
+      ? notices.map(function (n) {
+          return '<div class="notice-row' + (n.read ? "" : " is-unread") + '">' +
+            '<span class="notice-time">' + fmtShort(n.createdAt) +
+              (n.read ? "" : ' <span class="unread-dot" aria-label="未読"></span>') + "</span>" +
+            "<span>" +
+              '<span class="strong">' + esc(n.title) + "</span>" +
+              '<span class="badge" style="margin-left:8px">' + esc(kindLabel(n.kind)) + "</span>" +
+              '<br><span class="muted small">' + esc(n.body) + "</span>" +
+            "</span>" +
+            '<span class="notice-actions">' +
+              (n.artworkId ? '<a class="btn btn-ghost btn-sm" href="#/work/' + n.artworkId + '">作品を開く</a>' : "") +
+              (n.read ? "" : '<button type="button" class="btn btn-ghost btn-sm" data-act="notice-read" data-id="' + n.id + '">既読にする</button>') +
+            "</span>" +
+          "</div>";
+        }).join("")
+      : '<div class="ledger-empty">通知はまだありません。入札や落札があると、ここに届きます。</div>';
+
+    const mailRows = mails.length
+      ? mails.map(function (m) {
+          return '<div class="ledger-row" style="--ledger-cols:1fr 128px 74px">' +
+            "<span>" + esc(m.subject) + '<br><span class="faint small">' + esc(m.to) + "</span></span>" +
+            '<span class="mono faint">' + fmtShort(m.createdAt) + "</span>" +
+            '<span class="mono">' + esc(m.status === "queued" ? "未送信" : m.status) + "</span>" +
+          "</div>";
+        }).join("")
+      : '<div class="ledger-empty">メール通知の記録はまだありません。</div>';
+
+    return '<div class="wrap section">' +
+      '<div class="section-head"><h1 class="h2">通知</h1>' +
+        '<span class="section-count">未読 ' + unread + " / 全 " + notices.length + " 件</span></div>" +
+      '<div class="panel">' +
+        '<div class="panel-head"><h2 class="h3">アプリ内の通知</h2>' +
+          (unread ? '<button type="button" class="btn btn-sm" data-act="notice-all">すべて既読にする</button>' : "") +
+        "</div>" +
+        rows +
+      "</div>" +
+
+      '<div class="section-head" style="margin-top:34px"><h2 class="h2">メール通知の送信記録</h2>' +
+        '<span class="section-count">SMTP 未設定のため送信していません</span></div>' +
+      '<div class="panel">' +
+        '<p class="help" style="margin-bottom:12px">入札・落札のたびに、登録メールアドレス宛の通知をキューに積みます。' +
+          "送信先の設定が済むまでは「未送信」のまま記録だけが残ります（送信日時・試行回数も保存する設計です）。</p>" +
+        (mails.length ? '<div class="ledger-head" style="--ledger-cols:1fr 128px 74px"><span>件名 / 宛先</span><span>作成</span><span>状態</span></div>' : "") +
+        mailRows +
+      "</div>" +
+    "</div>";
+  }
+
+  function kindLabel(kind) {
+    return {
+      welcome: "登録", bid: "入札", outbid: "更新", won: "落札",
+      sold: "出品", unsold: "終了", auto: "自動入札", bonus: "ボーナス"
+    }[kind] || kind;
+  }
+
+  /* ============================================================
+     画面：ボーナスポイント
+     ============================================================ */
+  function viewBonus() {
+    const me = S.currentUser();
+    if (!me) {
+      return '<div class="wrap section">' + emptyState("ログインするとボーナスを受け取れます",
+        "ユーザー登録・初描画・初出品に応じて、入札に使えるポイントを付与します。",
+        '<a class="btn btn-primary" href="#/login">ログインする</a>') + "</div>";
+    }
+    const items = S.bonusItems(me.id);
+    const rows = items.map(function (b) {
+      const stateText = b.granted ? "受け取り済み" : b.done ? "受け取れます" : "条件未達";
+      const badge = b.granted
+        ? '<span class="badge badge-ink">' + stateText + "</span>"
+        : b.done
+          ? '<span class="badge badge-live">' + stateText + "</span>"
+          : '<span class="badge badge-soon">' + stateText + "</span>";
+      return '<div class="bonus-row">' +
+        "<div>" +
+          '<p class="h3">' + esc(b.label) + "</p>" +
+          '<p class="small muted">' + esc(b.hint) + "</p>" +
+        "</div>" +
+        '<div class="btn-row" style="align-items:center;gap:14px">' +
+          '<span class="bonus-amount">' + fmtPt(b.amount) + " pt</span>" +
+          badge +
+          (b.granted || !b.done ? "" : '<button type="button" class="btn btn-live btn-sm" data-act="claim" data-key="' + b.key + '">受け取る</button>') +
+        "</div>" +
+      "</div>";
+    }).join("");
+
+    const ledger = S.ledgerOf(me.id);
+    const ledgerRows = ledger.length
+      ? ledger.map(function (t) {
+          return '<div class="ledger-row" style="--ledger-cols:1fr 88px 116px">' +
+            "<span>" + esc(txLabel(t.kind)) + '<br><span class="faint small">' + esc(t.note) + "</span></span>" +
+            '<span class="ledger-amount" style="color:' + (t.amount < 0 ? "var(--spot-deep)" : "var(--indigo)") + '">' +
+              (t.amount > 0 ? "+" : "") + fmtPt(t.amount) + "</span>" +
+            '<span class="mono faint" style="text-align:right">' + fmtShort(t.createdAt) + " · 残 " + fmtPt(t.balanceAfter) + "</span>" +
+          "</div>";
+        }).join("")
+      : '<div class="ledger-empty">まだ記録がありません。</div>';
+
+    return '<div class="wrap section">' +
+      '<div class="crumbs"><a href="#/account">アカウント</a> / ボーナスポイント</div>' +
+      '<div class="section-head"><h1 class="h2">ボーナスポイント</h1>' +
+        '<span class="section-count">保有 ' + fmtPt(me.balance) + " pt</span></div>" +
+
+      '<div class="notice-ink" style="margin-bottom:20px">' +
+        "<p><b>付与の量と条件は、まだ確定していません。</b></p>" +
+        '<p class="small">ここに表示している金額（登録 500 pt / はじめて描く 50 pt / はじめて出品 100 pt）は、' +
+        "要件定義書 9 章の未決事項に対する開発用の既定値です。付与した事実はポイント取引の履歴に残ります。</p>" +
+      "</div>" +
+
+      '<div class="layout-aside">' +
+        '<div class="panel">' +
+          '<div class="panel-head"><h2 class="h3">受け取れるボーナス</h2>' +
+            '<span class="badge">1 人につき各種 1 回</span></div>' +
+          rows +
+        "</div>" +
+        '<div class="panel">' +
+          '<div class="panel-head"><h2 class="h3">ポイントの履歴</h2>' +
+            '<span class="section-count">' + ledger.length + " 件</span></div>" +
+          (ledger.length ? '<div class="ledger-head" style="--ledger-cols:1fr 88px 116px">' +
+            "<span>内容</span><span>増減</span><span style=\"text-align:right\">日時 / 残高</span></div>" : "") +
+          ledgerRows +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function txLabel(kind) {
+    return {
+      dev: "開発用の初期ポイント", signup: "登録ボーナス", bonus: "ボーナスポイント",
+      bid: "入札による引き落とし", refund: "高値更新の返却"
+    }[kind] || kind;
+  }
+
+  /* ============================================================
+     画面：チャージ／支払い（遷移先のみ）
+     ============================================================ */
+  function viewCharge() {
+    return '<div class="wrap section">' +
+      '<div class="crumbs"><a href="#/account">アカウント</a> / アプリ内チャージ</div>' +
+      '<div class="section-head"><h1 class="h2">アプリ内チャージ</h1>' +
+        '<span class="badge badge-soon">Ver0.5 では未提供</span></div>' +
+      '<div class="soon-panel halftone">' +
+        '<span class="soon-watermark" aria-hidden="true">VER 1</span>' +
+        '<h2 class="h3" style="margin-bottom:8px">この画面では、まだポイントを買えません。</h2>' +
+        '<p class="lede" style="margin-bottom:14px">Ver0.5 は Stripe との通信・テスト決済・実際の課金・決済によるポイント加算のすべてを行いません。' +
+        "画面の遷移先だけを用意し、課金機能が未提供であることが分かるようにしています。</p>" +
+        '<dl class="deflist" style="margin-bottom:16px">' +
+          "<dt>いまできること</dt><dd>登録・初描画・初出品のボーナスポイントを受け取る</dd>" +
+          "<dt>できないこと</dt><dd>カード決済、コンビニ決済、コード決済、チャージ</dd>" +
+          "<dt>予定</dt><dd>Ver1 で Stripe 連携を検討（上限額は未決）</dd>" +
+        "</dl>" +
+        '<div class="btn-row">' +
+          '<a class="btn btn-primary" href="#/bonus">ボーナスポイントを受け取る</a>' +
+          '<a class="btn" href="#/payment">支払い画面を見る</a>' +
+          '<a class="btn btn-ghost" href="#/">作品を探す</a>' +
+        "</div>" +
+      "</div>" +
+      '<p class="help" style="margin-top:16px">商品詳細からこの画面へ来られるのは、入札に必要なポイントが足りないときだけです。</p>' +
+    "</div>";
+  }
+
+  function viewPayment() {
+    return '<div class="wrap section">' +
+      '<div class="crumbs"><a href="#/charge">アプリ内チャージ</a> / 支払い画面</div>' +
+      '<div class="section-head"><h1 class="h2">支払い画面</h1>' +
+        '<span class="badge badge-soon">決済は行いません</span></div>' +
+      '<div class="soon-panel halftone">' +
+        '<span class="soon-watermark" aria-hidden="true">STRIPE</span>' +
+        '<h2 class="h3" style="margin-bottom:8px">支払いの手続きはありません。</h2>' +
+        '<p class="lede" style="margin-bottom:14px">カード番号や決済手段の入力欄は設けていません。' +
+          "決済事業者との通信も行わないため、この画面では何も入力せず、何も確定しません。</p>" +
+        '<div class="empty-state" style="margin-bottom:16px">' +
+          '<h3 class="h3">空の画面は、行き止まりではなく案内です</h3>' +
+          "<p>Ver0.5 でポイントを増やす方法は、ボーナスポイントだけです。受取済みのボーナスは残高と履歴に反映されます。</p>" +
+          '<a class="btn btn-primary" href="#/bonus">ボーナスポイントを確認する</a>' +
+        "</div>" +
+        '<a class="btn btn-ghost" href="#/charge">チャージ画面に戻る</a>' +
+      "</div>" +
+    "</div>";
+  }
+
+  /* ============================================================
+     画面：将来機能（配信・管理）
+     ============================================================ */
+  function viewSoon(kind) {
+    const map = {
+      viewer: {
+        title: "配信画面（閲覧側）",
+        lead: "描いているところを、そのまま見られるようにする構想です。",
+        items: [
+          ["配信", "SkyWay（NTT）または aiortc を使い、ブラウザ間で映像をやり取りします。"],
+          ["コメント", "配信中のコメントとスーパーチャットは将来機能です。"],
+          ["連携", "見ている画面からそのまま商品詳細へ入札に行ける導線を想定しています。"]
+        ]
+      },
+      streamer: {
+        title: "配信画面（配信側）",
+        lead: "描画画面から配信を始め、そのまま出品へ進む導線です。",
+        items: [
+          ["開始", "絵を描く画面から配信を開始し、作品ページへつなげます。"],
+          ["終了", "配信を終えると出品設定画面へ進みます。"],
+          ["記録", "タイムラプス保存は将来機能です。"]
+        ]
+      },
+      admin: {
+        title: "管理画面／管理者モード",
+        lead: "商品・アカウント・タグの管理は Ver0.5 の対象外です。",
+        items: [
+          ["現状", "初期タグは開発用のコマンドで準備します。"],
+          ["予定", "商品・アカウント・タグの管理画面を Ver1 以降で検討します。"],
+          ["権限", "DB 上は管理者の権限を保持できますが、画面は提供していません。"]
+        ]
+      }
+    }[kind];
+
+    return '<div class="wrap section">' +
+      '<div class="section-head"><h1 class="h2">' + esc(map.title) + "</h1>" +
+        '<span class="badge badge-soon">将来機能 · Ver0.5 対象外</span></div>' +
+      '<div class="soon-panel halftone">' +
+        '<span class="soon-watermark" aria-hidden="true">VER 1</span>' +
+        '<h2 class="h3" style="margin-bottom:8px">' + esc(map.lead) + "</h2>" +
+        '<p class="lede" style="margin-bottom:8px">要件定義書では、この画面は将来機能として区別されています。Ver0.5 の完成条件には含まれません。</p>' +
+        '<ul class="soon-list">' + map.items.map(function (i) {
+          return "<li><span class=\"label\" style=\"margin:0\">" + esc(i[0]) + "</span><span>" + esc(i[1]) + "</span></li>";
+        }).join("") + "</ul>" +
+        '<div class="btn-row" style="margin-top:18px">' +
+          '<a class="btn btn-primary" href="#/">作品を探す</a>' +
+          '<a class="btn btn-ghost" href="#/draw">絵を描く</a>' +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function notFound(title, body) {
+    return '<div class="wrap section">' +
+      emptyState(title || "ページが見つかりません",
+        body || "URL を確認するか、作品一覧へ戻ってください。",
+        '<div class="btn-row"><a class="btn btn-primary" href="#/">作品を探す</a>' +
+        '<a class="btn btn-ghost" href="#/draw">絵を描く</a></div>') +
+    "</div>";
+  }
+
+  /* ============================================================
+     ルーティング
+     ============================================================ */
+  function route() {
+    const raw = (location.hash || "#/").replace(/^#/, "");
+    const qi = raw.indexOf("?");
+    const path = (qi >= 0 ? raw.slice(0, qi) : raw) || "/";
+    const query = {};
+    if (qi >= 0) {
+      raw.slice(qi + 1).split("&").forEach(function (kv) {
+        if (!kv) return;
+        const p = kv.split("=");
+        query[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || "").replace(/\+/g, " "));
+      });
+    }
+    return { path: path, parts: path.split("/").filter(Boolean), query: query };
+  }
+
+  function render(opts) {
+    const o = opts || {};
+    const r = route();
+    const keepScroll = o.scroll === "keep" ? window.scrollY : null;
+
+    if (mounted && mounted.unmount) mounted.unmount();
+    mounted = null;
+
+    let html = "";
+    let mountFn = null;
+
+    switch (r.parts[0]) {
+      case undefined: html = viewHome(r.query); break;
+      case "work": html = viewWork(r.parts[1]); break;
+      case "draw": html = viewDraw(); mountFn = mountDraw; break;
+      case "list": html = viewListing(r.parts[1]); mountFn = mountListing; break;
+      case "login": html = viewAuth("login"); mountFn = mountAuth; break;
+      case "register": html = viewAuth("register"); mountFn = mountAuth; break;
+      case "account": html = viewAccount(r.query); break;
+      case "notices": html = viewNotices(); break;
+      case "bonus": html = viewBonus(); break;
+      case "charge": html = viewCharge(); break;
+      case "payment": html = viewPayment(); break;
+      case "live": html = viewSoon(r.parts[1] === "streamer" ? "streamer" : "viewer"); break;
+      case "admin": html = viewSoon("admin"); break;
+      default: html = notFound(); break;
+    }
+
+    screenEl.innerHTML = html;
+    renderRail();
+
+    if (mountFn) mounted = mountFn() || null;
+
+    if (keepScroll !== null) window.scrollTo(0, Math.min(keepScroll, document.body.scrollHeight));
+    else if (!o.keepFocus) screenEl.focus({ preventScroll: true });
+    if (o.focusSelector) {
+      const el = document.querySelector(o.focusSelector);
+      if (el) el.focus();
+    }
+  }
+
+  function rerender() { render({ scroll: "keep" }); }
+
+  /* ============================================================
+     描画キャンバスの実装
+     ============================================================ */
+  function mountDraw() {
+    const canvas = document.getElementById("canvas");
+    if (!canvas) return null;
+    const ctx = canvas.getContext("2d");
+    const frame = document.getElementById("canvas-frame");
+    const veil = document.getElementById("canvas-veil");
+    const startBtn = document.getElementById("draw-start");
+    const finishBtn = document.getElementById("draw-finish");
+    const clockBox = document.getElementById("draw-clock");
+    const clockValue = document.getElementById("draw-clock-value");
+    const strokeEl = document.getElementById("draw-stroke");
+    const strokeFill = strokeEl.querySelector("span");
+    const durationSet = document.getElementById("duration-set");
+
+    const d = {
+      canvas: canvas, ctx: ctx,
+      duration: 10, startedAt: 0, endsAt: 0,
+      started: false, finished: false, saved: null,
+      pen: "maru", color: "#16181c", size: 4,
+      undo: [], drawing: false, last: null, dirty: false
+    };
+
+    function resetCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      d.undo = [];
+      d.dirty = false;
+    }
+    resetCanvas();
+
+    function pushUndo() {
+      try {
+        if (d.undo.length > 10) d.undo.shift();
+        d.undo.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      } catch (e) { /* 画像が大きすぎる環境では取り消し不可 */ }
+    }
+
+    function pos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function beginStroke(p) {
+      pushUndo();
+      d.drawing = true;
+      d.last = p;
+      d.dirty = true;
+      dot(p);
+    }
+
+    function dot(p) {
+      ctx.save();
+      applyPen();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.6, lineWidth() / 2), 0, Math.PI * 2);
+      ctx.fillStyle = d.color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function lineWidth() {
+      if (d.pen === "maru") return d.size * 0.7;
+      if (d.pen === "gpen") return d.size * 1.2;
+      if (d.pen === "blur") return d.size * 1.8;
+      return d.size * 3;
+    }
+
+    function applyPen() {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = lineWidth();
+      ctx.strokeStyle = d.color;
+      if (d.pen === "eraser") {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.globalAlpha = 1;
+      } else if (d.pen === "blur") {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 0.55;
+        ctx.shadowBlur = d.size * 2.6;
+        ctx.shadowColor = d.color;
+      } else if (d.pen === "gpen") {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 0.95;
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function moveStroke(p) {
+      ctx.save();
+      applyPen();
+      ctx.beginPath();
+      ctx.moveTo(d.last.x, d.last.y);
+      ctx.quadraticCurveTo(d.last.x, d.last.y, (d.last.x + p.x) / 2, (d.last.y + p.y) / 2);
+      ctx.stroke();
+      ctx.restore();
+      d.last = p;
+    }
+
+    function endStroke() { d.drawing = false; d.last = null; }
+
+    canvas.addEventListener("pointerdown", function (e) {
+      if (!d.started || d.finished) return;
+      e.preventDefault();
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 合成イベントでは対象外 */ }
+      beginStroke(pos(e));
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      if (!d.drawing) return;
+      e.preventDefault();
+      moveStroke(pos(e));
+    });
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", endStroke);
+    canvas.addEventListener("pointerleave", function () { d.drawing = false; });
+
+    /* 制限時間の選択 */
+    durationSet.addEventListener("click", function (e) {
+      const btn = e.target.closest("[data-dur]");
+      if (!btn || d.started) return;
+      d.duration = Number(btn.dataset.dur);
+      durationSet.querySelectorAll("[data-dur]").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+      clockValue.textContent = clockText(d.duration * 1000);
+      strokeFill.style.width = "0%";
+    });
+
+    /* ペン・色・太さ */
+    document.getElementById("pen-set").addEventListener("click", function (e) {
+      const btn = e.target.closest("[data-pen]");
+      if (!btn) return;
+      d.pen = btn.dataset.pen;
+      document.querySelectorAll("#pen-set [data-pen]").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+    });
+    document.getElementById("color-set").addEventListener("click", function (e) {
+      const btn = e.target.closest("[data-color]");
+      if (!btn) return;
+      d.color = btn.dataset.color;
+      document.querySelectorAll("#color-set [data-color]").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+      if (d.pen === "eraser") {
+        d.pen = "maru";
+        document.querySelectorAll("#pen-set [data-pen]").forEach(function (b) {
+          b.setAttribute("aria-pressed", String(b.dataset.pen === "maru"));
+        });
+      }
+    });
+    document.getElementById("size-set").addEventListener("click", function (e) {
+      const btn = e.target.closest("[data-size]");
+      if (!btn) return;
+      d.size = Number(btn.dataset.size);
+      document.querySelectorAll("#size-set [data-size]").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+    });
+
+    document.getElementById("draw-undo").addEventListener("click", function () {
+      if (!d.started || d.finished) return;
+      const img = d.undo.pop();
+      if (!img) { toast("取り消せる操作がありません。"); return; }
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.putImageData(img, 0, 0);
+      ctx.restore();
+    });
+    document.getElementById("draw-clear").addEventListener("click", function () {
+      if (!d.started || d.finished) return;
+      pushUndo();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      d.dirty = false;
+    });
+
+    function lockUI() {
+      frame.classList.add("is-locked");
+      startBtn.disabled = true;
+      finishBtn.disabled = false;
+      durationSet.querySelectorAll("[data-dur]").forEach(function (b) { b.disabled = true; });
+      veil.style.display = "none";
+    }
+
+    startBtn.addEventListener("click", function () {
+      if (d.started) return;
+      d.started = true;
+      d.startedAt = Date.now();
+      d.endsAt = d.startedAt + d.duration * 1000;
+      lockUI();
+      clockBox.classList.remove("is-urgent");
+      clockValue.textContent = clockText(d.duration * 1000);
+      toast(durationLabel(d.duration) + "の描画を始めました。");
+      canvas.focus();
+    });
+
+    finishBtn.addEventListener("click", function () {
+      if (!d.started || d.finished) return;
+      finish("manual");
+    });
+
+    function finish(reason) {
+      d.finished = true;
+      finishBtn.disabled = true;
+      frame.classList.add("is-locked");
+      const elapsed = Math.min(d.duration, Math.max(0, Math.round((Date.now() - d.startedAt) / 1000)));
+      if (reason === "timeout") {
+        clockValue.textContent = clockText(0);
+        strokeFill.style.width = "100%";
+        toast("時間切れです。描画を停止し、PNG として保存します。");
+      }
+      save(elapsed);
+    }
+
+    function save(elapsed) {
+      let dataUrl = "";
+      try { dataUrl = canvas.toDataURL("image/png"); }
+      catch (e) { dataUrl = ""; }
+      const res = S.saveDraft({ image: dataUrl, drawSeconds: d.duration });
+      if (!res.ok) {
+        veil.style.display = "flex";
+        veil.innerHTML = "<div><p><b>保存できませんでした。</b><br><span class=\"small\">" + esc(res.message) +
+          "絵はこのまま残っています。保存をやり直せます。</span></p></div>";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "btn btn-primary";
+        retry.style.marginTop = "12px";
+        retry.textContent = "保存をやり直す";
+        retry.addEventListener("click", function () { save(elapsed); });
+        veil.querySelector("div").appendChild(retry);
+        return;
+      }
+      d.saved = res.artwork;
+      veil.style.display = "flex";
+      veil.innerHTML =
+        "<div><p><b>下書きとして保存しました。</b><br>" +
+        '<span class="small">保存した絵に加筆はできません。出品情報はあとから編集できます。</span></p>' +
+        '<div class="btn-row" style="justify-content:center;margin-top:14px">' +
+          '<button type="button" class="btn btn-primary" data-act="go" data-href="#/list/' + res.artwork.id + '">出品設定へ進む</button>' +
+          '<button type="button" class="btn" data-act="go" data-href="#/account?tab=drafts">下書き一覧へ</button>' +
+        "</div></div>";
+      openDialog({
+        title: "下書きを保存しました",
+        body:
+          '<p class="small muted">描画 ' + durationLabel(d.duration) + " · 保存 " + fmtFull(res.artwork.createdAt) + "（日本時間）</p>" +
+          '<img src="' + dataUrl + '" alt="保存した絵" style="border:1px solid var(--ink-22);background:var(--paper-3)">' +
+          '<p class="small">次に出品情報（タイトル・説明・タグ・開始価格・終了日時）を設定します。ここで決めずに、あとからアカウント画面の下書き一覧で決めることもできます。</p>',
+        actions: [
+          { label: "出品設定へ進む", kind: "primary", onSelect: function () { location.hash = "#/list/" + res.artwork.id; } },
+          { label: "あとで決める（下書き一覧へ）", onSelect: function () { location.hash = "#/account?tab=drafts"; } }
+        ]
+      });
+    }
+
+    /* 1 秒ごとの呼び出し（ui の ticker から） */
+    function tick() {
+      if (!d.started) return;
+      if (d.finished) return;
+      const remain = d.endsAt - Date.now();
+      clockValue.textContent = clockText(Math.max(0, remain));
+      const total = d.duration * 1000;
+      strokeFill.style.width = pct(((total - Math.max(0, remain)) / total) * 100);
+      const urgent = remain <= 10000;
+      clockBox.classList.toggle("is-urgent", urgent);
+      strokeEl.classList.toggle("is-urgent", urgent);
+      if (remain <= 0) finish("timeout");
+    }
+
+    tick();
+    return {
+      unloadState: function () { return { dirty: d.started && !d.finished && d.dirty }; },
+      tick: tick
+    };
+  }
+
+  /* 未保存の描画があるか（画面離脱の確認に使う） */
+  function drawHasUnsaved() {
+    return !!(mounted && mounted.unloadState && mounted.unloadState().dirty);
+  }
+
+  /* ============================================================
+     出品設定の画面マウント
+     ============================================================ */
+  function mountListing() {
+    const form = document.getElementById("list-form");
+    if (!form) return null;
+    const pickBox = document.getElementById("tag-pick");
+    const picked = [];
+
+    pickBox.addEventListener("click", function (e) {
+      const btn = e.target.closest("[data-tag-pick]");
+      if (!btn) return;
+      const t = btn.dataset.tagPick;
+      const i = picked.indexOf(t);
+      if (i >= 0) picked.splice(i, 1); else picked.push(t);
+      btn.setAttribute("aria-pressed", String(i < 0));
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const fb = document.getElementById("list-feedback");
+      const artworkId = form.dataset.artwork;
+      const endsLocal = document.getElementById("l-ends").value;
+      if (!endsLocal) { fb.innerHTML = '<span class="problem">終了日時を入力してください。</span>'; return; }
+      const endsAt = new Date(endsLocal).toISOString();
+
+      const info = {
+        title: document.getElementById("l-title").value,
+        description: document.getElementById("l-desc").value,
+        tags: picked.slice(),
+        startPrice: document.getElementById("l-price").value,
+        endsAt: endsAt
+      };
+
+      openDialog({
+        title: "この内容で出品しますか",
+        body:
+          '<dl class="deflist">' +
+            "<dt>タイトル</dt><dd>" + esc(info.title || "（未入力）") + "</dd>" +
+            "<dt>タグ</dt><dd>" + (picked.length ? esc(picked.join("・")) : "（未選択）") + "</dd>" +
+            "<dt>開始価格</dt><dd class=\"data\">" + esc(String(info.startPrice)) + " pt</dd>" +
+            "<dt>終了日時</dt><dd class=\"data\">" + fmtFull(endsAt) + "（日本時間）</dd>" +
+          "</dl>" +
+          '<p class="small muted">公開すると同時にオークションが始まります。Ver0.5 では出品の取消や再出品はできません。</p>',
+        actions: [
+          {
+            label: "出品して公開する", kind: "primary",
+            onSelect: function () {
+              const res = S.publish(artworkId, info);
+              if (!res.ok) {
+                document.getElementById("list-feedback").innerHTML = '<span class="problem">' + esc(res.message) + "</span>";
+                return;
+              }
+              toast("出品しました。オークションが始まりました。");
+              location.hash = "#/work/" + res.artwork.id;
+            }
+          },
+          { label: "入力に戻る" }
+        ]
+      });
+    });
+    return null;
+  }
+
+  function mountAuth() {
+    const form = document.getElementById("auth-form");
+    if (!form) return null;
+    const isLogin = !document.getElementById("username");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const fb = document.getElementById("auth-feedback");
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const res = isLogin
+        ? S.login(email, password)
+        : S.register({
+            username: document.getElementById("username").value,
+            email: email,
+            password: password,
+            confirm: document.getElementById("confirm").value
+          });
+      if (!res.ok) {
+        fb.innerHTML = '<span class="problem">' + esc(res.message) + "</span>";
+        (document.getElementById(isLogin ? "email" : "username") || document.getElementById("email")).focus();
+        return;
+      }
+      toast(isLogin ? "ログインしました。" : "登録しました。ボーナス " + S.BONUS.signup + " pt を付与しました。");
+      location.hash = isLogin ? "#/account" : "#/draw";
+    });
+    return null;
+  }
+
+  /* ============================================================
+     委譲イベント
+     ============================================================ */
+  document.addEventListener("click", function (e) {
+    const el = e.target.closest("[data-act]");
+    if (!el) return;
+    const act = el.dataset.act;
+    const me = S.currentUser();
+
+    if (act === "logout") {
+      S.logout();
+      toast("ログアウトしました。");
+      location.hash = "#/";
+      render();
+      return;
+    }
+
+    if (act === "jump") {
+      const t = document.getElementById(el.dataset.target);
+      if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (act === "tag") {
+      const tag = el.dataset.tag;
+      const r = route();
+      const cur = (r.query.tags ? r.query.tags.split(",") : []).filter(Boolean);
+      const i = cur.indexOf(tag);
+      if (i >= 0) cur.splice(i, 1); else cur.push(tag);
+      setHomeQuery({ tags: cur });
+      return;
+    }
+
+    if (act === "clear-tags") { setHomeQuery({ tags: [] }); return; }
+
+    if (act === "go") {
+      location.hash = el.dataset.href;
+      return;
+    }
+
+    if (act === "fav-work") {
+      const res = S.toggleFavWork(el.dataset.id);
+      toast(res.message, res.ok ? null : "error");
+      if (res.ok) rerender();
+      return;
+    }
+
+    if (act === "fav-auction") {
+      const res = S.toggleFavAuction(el.dataset.id);
+      toast(res.message, res.ok ? null : "error");
+      if (res.ok) rerender();
+      return;
+    }
+
+    if (act === "bid-quick") {
+      const input = document.getElementById("bid-amount");
+      if (!input) return;
+      input.value = String(Number(input.value || 0) + Number(el.dataset.add));
+      input.focus();
+      return;
+    }
+
+    if (act === "price-preset") {
+      const input = document.getElementById("l-price");
+      if (input) { input.value = el.dataset.value; input.focus(); }
+      return;
+    }
+
+    if (act === "ends-preset") {
+      const input = document.getElementById("l-ends");
+      if (input) {
+        input.value = toLocalInput(new Date(Date.now() + Number(el.dataset.min) * 60 * 1000));
+        input.focus();
+      }
+      return;
+    }
+
+    if (act === "save-draft-info") {
+      const form = document.getElementById("list-form");
+      if (!form) return;
+      const picked = Array.prototype.map.call(document.querySelectorAll('[data-tag-pick][aria-pressed="true"]'), function (b) {
+        return b.dataset.tagPick;
+      });
+      const res = S.updateDraftInfo(form.dataset.artwork, {
+        title: document.getElementById("l-title").value,
+        description: document.getElementById("l-desc").value,
+        tags: picked
+      });
+      const fb = document.getElementById("list-feedback");
+      if (fb) fb.innerHTML = res.ok ? '<span class="muted">下書きに保存しました。出品はまだ行っていません。</span>' : '<span class="problem">' + esc(res.message) + "</span>";
+      toast(res.ok ? "下書きに保存しました。" : res.message, res.ok ? null : "error");
+      return;
+    }
+
+    if (act === "notice-read") {
+      S.markNoticeRead(el.dataset.id);
+      rerender();
+      return;
+    }
+
+    if (act === "notice-all") {
+      if (me) { S.markAllRead(me.id); toast("すべての通知を既読にしました。"); rerender(); }
+      return;
+    }
+
+    if (act === "claim") {
+      const res = S.claimBonus(el.dataset.key);
+      toast(res.ok ? "ボーナス " + res.amount + " pt を残高に反映しました。" : res.message, res.ok ? null : "error");
+      if (res.ok) rerender();
+      return;
+    }
+  });
+
+  document.addEventListener("change", function (e) {
+    const el = e.target.closest("[data-act]");
+    if (!el) return;
+    if (el.dataset.act === "sort") { setHomeQuery({ sort: el.value }); }
+    if (el.dataset.act === "state") { setHomeQuery({ state: el.value }); }
+  });
+
+  function setHomeQuery(patch) {
+    const r = route();
+    const q = Object.assign({}, r.query, patch);
+    if (q.tags && Array.isArray(q.tags)) {
+      if (!q.tags.length) delete q.tags; else q.tags = q.tags.join(",");
+    }
+    if (q.sort === "ending") delete q.sort;
+    if (q.state === "all") delete q.state;
+    const qs = Object.keys(q).filter(function (k) { return q[k]; })
+      .map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(q[k]); }).join("&");
+    location.hash = "#/" + (qs ? "?" + qs : "");
+  }
+
+  /* 入札・自動入札・表示名のフォーム（画面ごとに委譲で拾う） */
+  document.addEventListener("submit", function (e) {
+    const form = e.target;
+    if (form.id === "bid-form") {
+      e.preventDefault();
+      const auctionId = form.dataset.auction;
+      const amount = document.getElementById("bid-amount").value;
+      const res = S.placeBid(auctionId, amount, "manual");
+      render({ scroll: "keep" });
+      const fb = document.getElementById("bid-feedback");
+      if (fb) {
+        fb.innerHTML = res.ok
+          ? '<div class="notice-ink">入札を受け付けました。現在価格は ' + fmtPt(res.auction.currentPrice) + " pt です。</div>"
+          : '<span class="problem">' + esc(res.message) + "</span>";
+      }
+      toast(res.ok ? "入札しました。" : res.message, res.ok ? null : "error");
+      return;
+    }
+    if (form.id === "auto-form") {
+      e.preventDefault();
+      const auctionId = form.dataset.auction;
+      const max = document.getElementById("auto-max").value;
+      const res = S.setAutoBid(auctionId, null, max);
+      render({ scroll: "keep" });
+      const fb = document.getElementById("auto-feedback");
+      if (fb) {
+        fb.innerHTML = res.ok
+          ? '<div class="notice-ink">自動入札を設定しました。上限 ' + fmtPt(res.auto.maxAmount) + " pt です。</div>"
+          : '<span class="problem">' + esc(res.message) + "</span>";
+      }
+      toast(res.ok ? "自動入札を設定しました。" : res.message, res.ok ? null : "error");
+      return;
+    }
+    if (form.id === "profile-form") {
+      e.preventDefault();
+      const res = S.updateDisplayName(document.getElementById("p-display").value);
+      const fb = document.getElementById("profile-feedback");
+      if (fb) fb.innerHTML = res.ok ? '<span class="muted">保存しました。</span>' : '<span class="problem">' + esc(res.message) + "</span>";
+      if (res.ok) { toast("表示名を保存しました。"); renderRail(); }
+      return;
+    }
+  });
+
+  /* ============================================================
+     画面離脱の確認と定期実行
+     ============================================================ */
+  window.addEventListener("beforeunload", function (e) {
+    if (drawHasUnsaved()) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  window.addEventListener("hashchange", function () {
+    if (drawHasUnsaved()) {
+      const leave = window.confirm("描いている絵はまだ保存されていません。移動すると絵は失われます。移動しますか？");
+      if (!leave) {
+        history.replaceState(null, "", location.href);
+        return;
+      }
+    }
+    render();
+  });
+
+  let lastCat = "";
+  function tick() {
+    const closed = S.closeExpired();
+    const path = currentPath();
+    if (closed && path !== "/draw") { render({ scroll: "keep" }); return; }
+
+    document.querySelectorAll("[data-cd]").forEach(function (el) {
+      const au = S.getAuction(el.dataset.cd);
+      if (!au) return;
+      el.textContent = cdText(au);
+    });
+    document.querySelectorAll("[data-stroke]").forEach(function (el) {
+      const au = S.getAuction(el.dataset.stroke);
+      if (!au) return;
+      const total = Date.parse(au.endsAt) - Date.parse(au.createdAt);
+      const remain = S.remainingMs(au);
+      const w = total > 0 ? ((total - Math.max(0, Math.min(total, remain))) / total) * 100 : 100;
+      const fill = el.querySelector("span");
+      if (fill) fill.style.width = pct(w);
+      el.classList.toggle("is-urgent", au.status === "active" && remain < 5 * 60 * 1000);
+    });
+    if (mounted && mounted.tick) mounted.tick();
+
+    const me = S.currentUser();
+    const cat = me ? me.id + ":" + S.unreadCount(me.id) + ":" + me.balance : "guest";
+    if (cat !== lastCat) { lastCat = cat; renderRail(); }
+  }
+
+  window.HEW_UI = {
+    render: render,
+    rerender: rerender,
+    toast: toast,
+    tick: tick,
+    hasUnsaved: drawHasUnsaved,
+    fmtPt: fmtPt,
+    remainText: remainText,
+    durationLabel: durationLabel,
+    fmtFull: fmtFull,
+    fmtShort: fmtShort
+  };
+})();
+
+</script>
+<script>
+/* ============================================================
+   app.js — 起動
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const S = window.HEW_STORE;
+  const UI = window.HEW_UI;
+
+  S.init();
+  UI.render();
+  UI.tick();
+  window.setInterval(function () { UI.tick(); }, 1000);
+
+  const resetBtn = document.getElementById("reset-demo");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", function () {
+      const ok = window.confirm(
+        "デモデータを初期状態に戻します。\n\nこのブラウザに保存した登録・下書き・入札・ポイントの記録はすべて消えます。よろしいですか？"
+      );
+      if (!ok) return;
+      S.reset();
+      location.hash = "#/";
+      UI.render();
+      UI.toast("デモデータを初期状態に戻しました。");
+    });
+  }
+
+  if (S.isMemoryOnly()) {
+    UI.toast("この環境では保存領域に書き込めないため、操作はこのタブ内だけで保持されます。", "error");
+  }
+})();
+
+</script>
+</body>
+</html>

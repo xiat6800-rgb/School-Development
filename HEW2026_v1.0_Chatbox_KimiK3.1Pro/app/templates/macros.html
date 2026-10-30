@@ -1,0 +1,17 @@
+{% macro auction_card(auction) %}
+<article class="art-card">
+  <a class="art-image" href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+    <img src="{{ url_for('artworks.show_artwork_image', artwork_id=auction.artwork_id) }}" alt="{{ auction.artwork.title }}" loading="lazy">
+    <span class="lot-label">Lot {{ '%03d'|format(auction.id) }}</span>
+  </a>
+  <div class="art-card-body">
+    <div class="art-meta"><span>{{ auction.artwork.artist.display_name }}</span><span class="status status-{{ auction.status }}">{{ auction.status|status_jp }}</span></div>
+    <h3><a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">{{ auction.artwork.title }}</a></h3>
+    <div class="art-price"><strong>{{ '{:,}'.format(auction.current_price) }}<small>pt</small></strong><span class="countdown" data-end="{{ auction.ends_at.isoformat() }}Z">{{ auction.ends_at|jst('%H:%M') }} 終了</span></div>
+  </div>
+</article>
+{% endmacro %}
+
+{% macro empty_state(title, body) %}
+<div class="empty-state"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 45 40 17l8 8-28 28-12 3z"/><path d="M39 12 46 5l13 13-7 7z"/></svg><h3>{{ title }}</h3><p>{{ body }}</p></div>
+{% endmacro %}

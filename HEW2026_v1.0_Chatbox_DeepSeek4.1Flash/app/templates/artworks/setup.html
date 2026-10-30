@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}描きはじめる{% endblock %}
+
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">描く</p>
+  <h1>制限時間を選ぶ</h1>
+  <p class="lead">
+    開始した瞬間から時間が進みます。制限時間は開始後に変更できません。
+    描き終えたら「完成する」を押してください。時間切れでも自動で止まり、保存の猶予は60秒です。
+  </p>
+
+  {% if event_closed %}
+    <p class="flash flash-warning">
+      イベントは終了しました。新しい描画は開始できません。公開作品の閲覧とダウンロードは引き続き利用できます。
+    </p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('artworks.start_drawing') }}" class="duration-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for duration in durations %}
+      <button type="submit" name="duration_seconds" value="{{ duration }}" class="duration-card"
+              {% if event_closed %}disabled{% endif %}>
+        <span class="duration-value">
+          {% if duration < 60 %}{{ duration }}<small>秒</small>{% else %}{{ duration // 60 }}<small>分</small>{% endif %}
+        </span>
+        <span class="duration-note">
+          {% if duration == 10 %}スケッチ
+          {% elif duration == 30 %}下書き
+          {% elif duration == 60 %}ひと描き
+          {% else %}じっくり{% endif %}
+        </span>
+      </button>
+    {% endfor %}
+  </form>
+
+  <div class="panel">
+    <h2>描くときの決まり</h2>
+    <ul class="bullet-list">
+      <li>キャンバスは 1,024 × 1,024px、レイヤーは最大10枚です。</li>
+      <li>元に戻す・やり直すは直近50操作まで。ペンを離した時点でブラウザに一時保存します。</li>
+      <li>正式保存は合成 PNG（5MiB以内）と全レイヤー ZIP の両方が必要です。</li>
+      <li>正式保存のあとは加筆できません。タイトルなど出品情報だけ編集できます。</li>
+      <li>保存の猶予を過ぎた作品は出品できず、描画ボーナスも付与されません。</li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

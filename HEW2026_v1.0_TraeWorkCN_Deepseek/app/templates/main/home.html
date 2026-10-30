@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import artwork_card %}
+
+{% block title %}HEW — 描いた絵が、競り合う。{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">HEW / POINT AUCTION</p>
+    <h1>一枚の線から、<br>競り合いが始まる。</h1>
+    <p class="lead">
+      制限時間の中で描いた一枚を、ポイントで競り合うオークションへ。
+      下書きはいつでも出品できます。
+    </p>
+    <div class="hero-actions">
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-primary" href="{{ url_for('artworks.draw') }}">絵を描き始める</a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('auth.register') }}">登録して描き始める</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{{ url_for('search.index') }}">作品を探す</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <p class="panel-label">NOW ON AUCTION</p>
+    <p class="panel-number">{{ stats.auctions }}</p>
+    <p class="panel-caption">開催中のオークション</p>
+    <dl class="panel-stats">
+      <div><dt>公開作品</dt><dd>{{ stats.artworks }}</dd></div>
+      <div><dt>参加者</dt><dd>{{ stats.users }}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">NEW ARRIVALS</p>
+      <h2>新着の作品</h2>
+    </div>
+    <a class="text-link" href="{{ url_for('search.index') }}">すべて見る</a>
+  </div>
+
+  {% if artworks %}
+    <div class="art-grid">
+      {% for artwork in artworks %}{{ artwork_card(artwork) }}{% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="empty-title">まだ公開作品がありません。</p>
+      <p>最初の一枚を描いて、オークションを始めてみましょう。</p>
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-primary" href="{{ url_for('artworks.draw') }}">絵を描く</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+
+<section class="section section-tags">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">TAGS</p>
+      <h2>タグから探す</h2>
+    </div>
+  </div>
+  <div class="tag-row tag-row-large">
+    {% for tag in tags %}
+      <a class="tag tag-link" href="{{ url_for('search.index', tags=tag.id) }}">{{ tag.name }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="flow">
+  <div class="flow-step">
+    <span class="flow-number">01</span>
+    <h3>描く</h3>
+    <p>10秒・30秒・1分・5分から制限時間を選び、キャンバスに描きます。</p>
+  </div>
+  <div class="flow-step">
+    <span class="flow-number">02</span>
+    <h3>下書き保存</h3>
+    <p>終了と同時に PNG の下書きとして保存。あとから出品できます。</p>
+  </div>
+  <div class="flow-step">
+    <span class="flow-number">03</span>
+    <h3>出品する</h3>
+    <p>タイトル・タグ・開始価格・終了日時を設定して公開します。</p>
+  </div>
+  <div class="flow-step">
+    <span class="flow-number">04</span>
+    <h3>競り合う</h3>
+    <p>ポイントで入札。自動入札を使えば上限額まで自動で追随します。</p>
+  </div>
+</section>
+{% endblock %}

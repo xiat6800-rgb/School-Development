@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}支払い — HEW{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">PAYMENT</p>
+    <h1>支払い</h1>
+    <p class="lead">ここは支払い画面の遷移先です。</p>
+  </div>
+</div>
+
+<div class="center-card">
+  <div class="notice notice-warn">
+    Ver0.5 では決済機能を提供していません。カード情報の入力、Stripe との通信、
+    決済処理、ポイントの加算は行いません。
+  </div>
+  <p class="hint">将来の Ver1 以降で課金機能を追加する予定です。</p>
+  <a class="btn btn-ghost btn-block" href="{{ url_for('points.charge') }}">チャージ画面へ戻る</a>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEW — 時間のなかで描いた一枚を、競りにかける</title>
+<meta name="description" content="制限時間内に描いた絵を下書き保存し、ポイントで入札して落とすオークションシステム。要件定義書 Ver0.5 の画面一式。">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=New+Tegomin&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<a class="skip-link" href="#screen">本文へ移動</a>
+
+<header class="rail">
+  <div class="wrap rail-inner" id="rail-inner"></div>
+</header>
+
+<main class="screen" id="screen" tabindex="-1"></main>
+
+<footer class="colophon">
+  <div class="wrap colophon-inner">
+    <div class="colophon-main">
+      <p class="colophon-mark">HEW</p>
+      <p class="colophon-note">
+        サイト上で描いた絵を、ポイントで入札するオークションに出品・入札できるシステム。<br>
+        本ファイル群は要件定義書 Ver0.5 の画面一式を、ブラウザ内だけで動くプロトタイプとして実装したものです。
+      </p>
+      <p class="colophon-meta mono">
+        VER 0.5 · 2026-09-18 要件 · 制作: 佐伯祐介 / 小村世羅 / Naufal Abrisam Hilmy / 瀧本隆人
+      </p>
+    </div>
+    <div class="colophon-side">
+      <p class="mono colophon-label">DEMO DATA</p>
+      <p class="colophon-note">
+        登録・出品・入札・ポイントの記録は、このブラウザの保存領域にだけ書かれます。サーバーには送信されません。
+      </p>
+      <button type="button" class="btn btn-ghost btn-sm" id="reset-demo">デモデータを初期化する</button>
+    </div>
+  </div>
+</footer>
+
+<div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="false"></div>
+<div id="dialog-root"></div>
+
+<script src="assets/js/art.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

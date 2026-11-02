@@ -12,6 +12,7 @@ app/uploads/artworks/*
 app/uploads/layers/*
 !app/uploads/artworks/.gitkeep
 !app/uploads/layers/.gitkeep
+app/uploads/test/
 instance/
 *.db
 *.sqlite3

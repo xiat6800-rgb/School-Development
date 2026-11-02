@@ -12,13 +12,16 @@
 --
 -- 実行例（MySQL / MariaDB）:
 --   mysql -u root -p < DB-deploy/deploy.sql
+--
+-- 対象データベースは本版専用の `hew_xhigh` のみ。
+-- 他実装（TraeWorkCN 版）が使用中の `hew` には決して接続しないこと。
 -- ========================================
 
-CREATE DATABASE IF NOT EXISTS `hew`
+CREATE DATABASE IF NOT EXISTS `hew_xhigh`
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE `hew`;
+USE `hew_xhigh`;
 
 -- ----------------------------------------
 -- ユーザー

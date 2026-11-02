@@ -10,6 +10,7 @@ import base64
 from datetime import timedelta
 
 import pytest
+from sqlalchemy.engine import make_url
 
 from app import create_app
 from app.extensions import db
@@ -20,10 +21,27 @@ from app.services.image_service import create_solid_png
 from app.utils import utcnow
 
 
+def _assert_test_database(application) -> None:
+    """テスト用 DB 以外を操作していないことを保証する。
+
+    fixture は最後に ``db.drop_all()`` するため、DB 名が ``_test``
+    で終わらない接続先だと他の DB のデータを消してしまう。
+    """
+    db_name = make_url(
+        application.config["SQLALCHEMY_DATABASE_URI"]
+    ).database
+    if not db_name or not db_name.endswith("_test"):
+        raise RuntimeError(
+            f"テスト用 DB ではありません（{db_name}）。"
+            "テストは drop_all するため DB 名は _test で終わる必要があります。"
+        )
+
+
 @pytest.fixture()
 def app(tmp_path):
     """テスト用の Flask アプリ。"""
     application = create_app("testing")
+    _assert_test_database(application)
     application.config["UPLOAD_FOLDER"] = str(tmp_path / "uploads")
     application.config["WTF_CSRF_ENABLED"] = False
     with application.app_context():

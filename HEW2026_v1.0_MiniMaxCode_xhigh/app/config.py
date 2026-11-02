@@ -114,6 +114,8 @@ class Config:
     BONUS_SIGNUP_POINTS = _env_int("BONUS_SIGNUP_POINTS", 1000)
     BONUS_FIRST_LISTING_POINTS = _env_int("BONUS_FIRST_LISTING_POINTS", 300)
     BONUS_DRAW_POINTS = _env_int("BONUS_DRAW_POINTS", 100)
+    # 管理画面での手動調整の上限（Task 7 の管理画面で使う）。
+    ADMIN_ADJUST_MAX_POINTS = _env_int("ADMIN_ADJUST_MAX_POINTS", 100000)
 
 
 class TestingConfig(Config):

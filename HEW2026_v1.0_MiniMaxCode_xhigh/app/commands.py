@@ -1,6 +1,6 @@
 """Flask CLI コマンド。
 
-- ``init-db``      : モデルからテーブルを作る（開発用の近道）
+- ``init-db``      : テーブルを直接作る（ベースライン確定後は使わない）
 - ``seed-tags``    : 初期タグを登録する
 - ``seed-users``   : 開発用ユーザーを登録する
 - ``seed-demo``    : デモ作品とオークションを作る
@@ -41,7 +41,11 @@ def register_commands(app: Flask) -> None:
 @click.command("init-db")
 @with_appcontext
 def init_db() -> None:
-    """モデル定義からテーブルを作成する（開発用）。"""
+    """モデル定義からテーブルを作成する（開発用）。
+
+    ベースラインのマイグレーションを適用した後は使わないでください。
+    ``flask db migrate`` が全テーブルを CREATE する差分を作ってしまいます。
+    """
     db.create_all()
     click.echo("テーブルを作成しました。")
 

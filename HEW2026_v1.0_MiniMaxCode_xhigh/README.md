@@ -1,12 +1,17 @@
-# HEW2026 v1.0 — MiniMax Code / MiniMax M3.1 Flash 版
+# HEW2026 v1.0 — MiniMax Code / MiniMax M3.1 Flash（xhigh）版
 
 `../設計・要件` の **要件定義書 Ver.0.5（2026-10-26 更新）** と
 **仕様決定事項-2026-10-26** に沿って実装した、
 サイト上で描いた絵をポイントで競り合うオークションの Web システムです。
 
+> **本版が使うデータベースは独立したものです。**
+> 開発用 `hew_xhigh` / テスト用 `hew_xhigh_test` を用意し、
+> TraeWorkCN 版が使用中の `hew` には接続しません。
+> `DB-deploy/deploy.sql` も `hew_xhigh` 専用です。
+
 - サーバー: Python 3.13 / Flask（Application Factory + Blueprint）
 - フロント: HTML / CSS / Vanilla JavaScript（Canvas 描画・多レイヤー）
-- DB: MySQL 8 / MariaDB（utf8mb4）。開発確認用に SQLite へ切り替え可能
+- DB: MySQL 8 / MariaDB（utf8mb4）。開発用 `hew_xhigh` / テスト用 `hew_xhigh_test`
 - 認証: Flask-Login + Werkzeug パスワードハッシュ（**ユーザー名認証・メール不使用**）
 - フォーム: Flask-WTF（全 POST に CSRF）
 
@@ -19,13 +24,13 @@
 ## 1. すぐに動かす
 
 ```bash
-cd HEW2026_v1.0_MiniMaxCode_MiniMaxM3.1Flash
+cd HEW2026_v1.0_MiniMaxCode_xhigh
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 
 set FLASK_APP=main.py
-python -m flask init-db
+python -m flask db upgrade
 python -m flask seed-tags
 python -m flask seed-users --password <開発用パスワード>
 python -m flask seed-demo
@@ -34,8 +39,8 @@ python main.py
 # http://127.0.0.1:5000
 ```
 
-SQLite で試す場合は `.env` の `DATABASE_URL` を `sqlite:///hew_dev.db` に変更し、
-`python -m flask init-db` でテーブルを作成してから同じ seed コマンドを実行します。
+DB は MySQL が既定です（開発用 `hew_xhigh` / テスト用 `hew_xhigh_test`）。
+`hew_xhigh` が未作成の場合は 2 章の手順で用意してから実行してください。
 
 `seed-users` は `sample1` / `sample2` / `sample3` を作成し、指定したパスワードと
 復旧コードを表示します。`seed-demo` は `sample1` を出品者としてデモ作品 3 点と
@@ -46,19 +51,24 @@ SQLite で試す場合は `.env` の `DATABASE_URL` を `sqlite:///hew_dev.db` �
 1. `.env` の `DATABASE_URL` を環境に合わせて変更します（パスワードは `.env` のみ）。
 
 ```text
-DATABASE_URL=mysql+pymysql://root:your-password@127.0.0.1:3306/hew?charset=utf8mb4
+DATABASE_URL=mysql+pymysql://root:your-password@127.0.0.1:3306/hew_xhigh?charset=utf8mb4
 ```
 
-2. スキーマを作成します。
+2. スキーマを作成します（**A か B のどちらか一方だけ**を実行してください）。
 
 ```bash
-# 参照用 SQL をそのまま流す（DB 設計書の正）
-mysql -u root -p < DB-deploy/deploy.sql
-
-# または Flask-Migrate で管理する
-python -m flask db init
-python -m flask db migrate -m "HEW Ver0.5 schema"
+# A. Flask-Migrate で管理する（推奨・本版の正）
+#    migrations/ はリポジトリに同梱済みなので `db init` は不要です。
 python -m flask db upgrade
+```
+
+```bash
+# B. 参照用 SQL で作成する（DB 設計書の正）
+#    本スクリプトは `hew_xhigh` 専用です。`hew` には流れません。
+#    A と同時に実行しないでください（テーブルが二重作成されます）。
+#    B で作成した DB にはマイグレーションのバージョン情報が入らないため、
+#    後から `flask db upgrade` は使えません。移行したい場合は A を使ってください。
+mysql -u root -p < DB-deploy/deploy.sql
 ```
 
 3. 初期データを投入します。
@@ -70,6 +80,8 @@ python -m flask seed-demo
 ```
 
 `flask init-db` はモデル定義から直接テーブルを作る開発用の近道です。
+**ベースラインのマイグレーションを確定した後は使わないでください**
+（`db migrate` が全テーブルを CREATE する差分を作ってしまいます）。
 
 ## 3. 画面一覧（画面遷移図の Ver0.5 対象）
 
@@ -138,8 +150,8 @@ Ver0.5 の対象外のため実装していません。
   作りません。
 - PNG は `app/uploads/artworks/`（static の外）へ保存し、`/artworks/<id>/image` の権限チェック
   経由で配信します。下書きを URL 直打ちで閲覧できないようにするためです。
-- 開発確認用に SQLite を許容します（`.env` の `DATABASE_URL` を差し替えるだけ）。
-  テストも `TEST_DATABASE_URL` 未設定時は一時 SQLite で実行します。
+- データベースは MySQL が既定です（開発用 `hew_xhigh` / テスト用 `hew_xhigh_test`）。
+  SQLite へ切り替える場合は `.env` の `DATABASE_URL` を明示的に差し替えます。
 - `payment_intents`・`notification_deliveries`・`unsloth_compiled_cache` は
   現行 SQL にあるが Ver0.5 の要件に不要のため本版では作らず、テーブルも持たない。
 
@@ -149,7 +161,7 @@ Ver0.5 の対象外のため実装していません。
 python -m pytest -q
 ```
 
-54 件のテストが主要な画面遷移と業務ルールを検証します。
+59 件のテストが主要な画面遷移と業務ルールを検証します。
 
 - 登録・ログイン・ログアウト、重複ユーザー名、復旧コードでの再設定と使用後の無効化
 - 描画セッションの期限確定、不正な PNG／レイヤーの拒否、正式保存、描画ボーナスの 1 日 1 回

@@ -38,10 +38,10 @@
           <p class="muted">
             {% for tag in artwork.tags %}<span class="badge">#{{ tag.name }}</span>{% endfor %}
           </p>
-          {% if artwork.auction %}
+          {% if artwork.active_auction %}
             <a class="btn btn-sm btn-primary"
-               href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auction.id) }}">
-              {{ artwork.auction.current_price }}pt で入札する
+               href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.active_auction.id) }}">
+              {{ artwork.active_auction.current_price }}pt で入札する
             </a>
           {% endif %}
         </article>

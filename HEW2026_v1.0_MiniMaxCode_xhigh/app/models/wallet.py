@@ -36,6 +36,11 @@ class WalletTransaction(db.Model):
     related_bid_id = db.Column(
         db.Integer, db.ForeignKey("bids.id"), nullable=True
     )
+    # 同一キーの再実行で台帳に 2 行目を追加しないための一意キー。
+    reference_key = db.Column(
+        db.String(120), nullable=True, unique=True, index=True
+    )
+    reason = db.Column(db.String(300), nullable=True)
     created_at = db.Column(
         db.DateTime, nullable=False, default=utcnow, index=True
     )

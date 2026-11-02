@@ -8,6 +8,7 @@ from app.models.artwork import Artwork, DrawingSession
 from app.models.auction import Auction
 from app.models.auto_bid import AutoBidSetting
 from app.models.bid import Bid
+from app.models.cancellation import AuctionCancellation
 from app.models.favorite import ArtworkFavorite, AuctionFavorite
 from app.models.notification import Notification
 from app.models.tag import ArtworkTag, Tag
@@ -19,6 +20,7 @@ __all__ = [
     "ArtworkFavorite",
     "ArtworkTag",
     "Auction",
+    "AuctionCancellation",
     "AuctionFavorite",
     "AutoBidSetting",
     "Bid",

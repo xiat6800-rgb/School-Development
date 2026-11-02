@@ -1,6 +1,8 @@
 """オークション（競売）の模型。
 
-Ver0.5 では 1 作品につき 1 オークション。落札者は終了確定時に記録する。
+1 作品につき開催中のオークションは高々 1 件。取消後に再出品すると
+競売行は履歴として残り、``active_slot`` が NULL の行が過去分になる。
+落札者は終了確定時に記録する。
 """
 
 from __future__ import annotations
@@ -10,23 +12,41 @@ from app.utils import utcnow
 
 ACTIVE = "active"
 ENDED = "ended"
+CANCELLED = "cancelled"
 
 REASON_TIME_EXPIRED = "time_expired"
+REASON_SELLER_CANCELLED = "seller_cancelled"
+REASON_ADMIN_CANCELLED = "admin_cancelled"
+REASON_HIDDEN = "hidden"
+
+# 開催中のときだけ 1 が入る。MySQL の UNIQUE 制約は NULL 同士を
+# 衝突させないので、UNIQUE (artwork_id, active_slot) により
+# 「同一作品で同時開催の競売は高々 1 件」が DB で保証される。
+ACTIVE_SLOT = 1
 
 
 class Auction(db.Model):
     """作品の競売。"""
 
     __tablename__ = "auctions"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "artwork_id", "active_slot", name="uq_auctions_artwork_active_slot"
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     artwork_id = db.Column(
-        db.Integer, db.ForeignKey("artworks.id"), nullable=False, unique=True
+        db.Integer, db.ForeignKey("artworks.id"), nullable=False, index=True
     )
     start_price = db.Column(db.Integer, nullable=False, default=0)
     current_price = db.Column(db.Integer, nullable=False, default=0)
     reserve_price = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default=ACTIVE, index=True)
+    active_slot = db.Column(db.Integer, nullable=True, default=ACTIVE_SLOT)
+    previous_auction_id = db.Column(
+        db.Integer, db.ForeignKey("auctions.id"), nullable=True, index=True
+    )
     start_time = db.Column(db.DateTime, nullable=False, default=utcnow)
     end_time = db.Column(db.DateTime, nullable=False, index=True)
     winner_id = db.Column(

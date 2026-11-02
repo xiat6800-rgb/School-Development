@@ -69,7 +69,7 @@ def create_auction(
         raise BusinessRuleError("この作品は既に出品済みです。")
     if not artwork.is_saved:
         raise BusinessRuleError("画像が保存されていない作品はまだ出品できません。")
-    if artwork.auction is not None:
+    if artwork.active_auction is not None:
         raise BusinessRuleError("この作品にはすでにオークションがあります。")
 
     try:

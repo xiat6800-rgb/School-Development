@@ -8,7 +8,8 @@
 --   * 時刻は UTC で保存し、画面表示時に日本時間へ変換する
 --   * メールアドレスは使わない（ユーザー名 + 復旧コード）
 --   * bids.auction_id に一意制約を設けない（同一オークションに複数入札を保存する）
---   * auctions.artwork_id は UNIQUE（Ver0.5 は 1 作品 1 オークション）
+--   * auctions は UNIQUE (artwork_id, active_slot)（開催中は 1 作品 1 件。
+--     取消後に再出品しても履歴を残すため active_slot を NULL にする）
 --
 -- 実行例（MySQL / MariaDB）:
 --   mysql -u root -p < DB-deploy/deploy.sql
@@ -53,13 +54,18 @@ CREATE TABLE IF NOT EXISTS `artworks` (
   `image_path`        VARCHAR(500) NULL,
   `layer_archive_path` VARCHAR(500) NULL,
   `status`            VARCHAR(20)  NOT NULL DEFAULT 'draft',
+  `hidden_reason`     VARCHAR(300) NULL,
+  `hidden_at`         DATETIME     NULL,
+  `hidden_by_id`      BIGINT UNSIGNED NULL,
   `save_completed_at` DATETIME     NULL,
   `created_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_artworks_artist` (`artist_id`),
   KEY `idx_artworks_status` (`status`),
-  CONSTRAINT `fk_artworks_artist` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`)
+  KEY `idx_artworks_hidden_by` (`hidden_by_id`),
+  CONSTRAINT `fk_artworks_artist` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_artworks_hidden_by` FOREIGN KEY (`hidden_by_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------
@@ -93,6 +99,8 @@ CREATE TABLE IF NOT EXISTS `auctions` (
   `current_price` INT UNSIGNED NOT NULL DEFAULT 0,
   `reserve_price` INT UNSIGNED NULL,
   `status`        VARCHAR(20)  NOT NULL DEFAULT 'active',
+  `active_slot`   INT NULL,
+  `previous_auction_id` BIGINT UNSIGNED NULL,
   `start_time`    DATETIME NOT NULL,
   `end_time`      DATETIME NOT NULL,
   `winner_id`     BIGINT UNSIGNED NULL,
@@ -102,10 +110,13 @@ CREATE TABLE IF NOT EXISTS `auctions` (
   `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_auctions_artwork` (`artwork_id`),
+  UNIQUE KEY `uq_auctions_artwork_active_slot` (`artwork_id`, `active_slot`),
+  KEY `idx_auctions_artwork` (`artwork_id`),
+  KEY `idx_auctions_previous` (`previous_auction_id`),
   KEY `idx_auctions_status_end` (`status`, `end_time`),
   KEY `idx_auctions_winner` (`winner_id`),
   CONSTRAINT `fk_auctions_artwork` FOREIGN KEY (`artwork_id`) REFERENCES `artworks` (`id`),
+  CONSTRAINT `fk_auctions_previous` FOREIGN KEY (`previous_auction_id`) REFERENCES `auctions` (`id`),
   CONSTRAINT `fk_auctions_winner` FOREIGN KEY (`winner_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -117,6 +128,7 @@ CREATE TABLE IF NOT EXISTS `bids` (
   `auction_id`    BIGINT UNSIGNED NOT NULL,
   `bidder_id`     BIGINT UNSIGNED NOT NULL,
   `bid_amount`    INT UNSIGNED NOT NULL,
+  `held_points`   INT NOT NULL DEFAULT 0,
   `is_auto_bid`   BOOLEAN NOT NULL DEFAULT FALSE,
   `bid_status`    VARCHAR(20) NOT NULL DEFAULT 'accepted',
   `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -171,8 +183,11 @@ CREATE TABLE IF NOT EXISTS `wallet_transactions` (
   `balance_after`     INT UNSIGNED NOT NULL,
   `related_auction_id` BIGINT UNSIGNED NULL,
   `related_bid_id`    BIGINT UNSIGNED NULL,
+  `reference_key`     VARCHAR(120) NULL,
+  `reason`            VARCHAR(300) NULL,
   `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_wallet_reference_key` (`reference_key`),
   KEY `idx_wallet_user` (`user_id`, `created_at`),
   KEY `idx_wallet_auction` (`related_auction_id`),
   KEY `idx_wallet_bid` (`related_bid_id`),
@@ -209,13 +224,18 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `is_read`           BOOLEAN NOT NULL DEFAULT FALSE,
   `related_auction_id` BIGINT UNSIGNED NULL,
   `related_bid_id`    BIGINT UNSIGNED NULL,
+  `revoked_at`        DATETIME NULL,
+  `revoked_by_id`     BIGINT UNSIGNED NULL,
+  `revoke_reason`     VARCHAR(300) NULL,
   `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_notifications_user_read` (`user_id`, `is_read`, `created_at`),
   KEY `idx_notifications_auction` (`related_auction_id`),
+  KEY `idx_notifications_revoked_by` (`revoked_by_id`),
   CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `fk_notifications_auction` FOREIGN KEY (`related_auction_id`) REFERENCES `auctions` (`id`),
-  CONSTRAINT `fk_notifications_bid` FOREIGN KEY (`related_bid_id`) REFERENCES `bids` (`id`)
+  CONSTRAINT `fk_notifications_bid` FOREIGN KEY (`related_bid_id`) REFERENCES `bids` (`id`),
+  CONSTRAINT `fk_notifications_revoked_by` FOREIGN KEY (`revoked_by_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------
@@ -266,4 +286,30 @@ CREATE TABLE IF NOT EXISTS `artwork_tags` (
   KEY `idx_artwork_tags_tag` (`tag_id`, `artwork_id`),
   CONSTRAINT `fk_artwork_tags_artwork` FOREIGN KEY (`artwork_id`) REFERENCES `artworks` (`id`),
   CONSTRAINT `fk_artwork_tags_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------
+-- 取消・非公開の操作履歴（追記のみ。競売・入札は削除しない）
+-- ----------------------------------------
+-- 外部キーの列は参照先（auctions / artworks / users の id）と
+-- 同じ型・長さでなければならない。MySQL は INT と BIGINT UNSIGNED の
+-- 組み合わせで ERROR 3780 を返すため、ここは BIGINT UNSIGNED を使う。
+CREATE TABLE IF NOT EXISTS `auction_cancellations` (
+  `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `auction_id`      BIGINT UNSIGNED NULL,
+  `artwork_id`      BIGINT UNSIGNED NOT NULL,
+  `action`          VARCHAR(30) NOT NULL,
+  `actor_id`        BIGINT UNSIGNED NOT NULL,
+  `reason`          VARCHAR(300) NULL,
+  `refunded_points` INT NOT NULL DEFAULT 0,
+  `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_cancellations_auction` (`auction_id`),
+  KEY `idx_cancellations_artwork` (`artwork_id`),
+  KEY `idx_cancellations_action` (`action`),
+  KEY `idx_cancellations_actor` (`actor_id`),
+  KEY `idx_cancellations_created_at` (`created_at`),
+  CONSTRAINT `fk_cancellations_auction` FOREIGN KEY (`auction_id`) REFERENCES `auctions` (`id`),
+  CONSTRAINT `fk_cancellations_artwork` FOREIGN KEY (`artwork_id`) REFERENCES `artworks` (`id`),
+  CONSTRAINT `fk_cancellations_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

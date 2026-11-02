@@ -233,7 +233,7 @@ def _can_download(artwork) -> bool:
         return False
     if artwork.artist_id == current_user.id:
         return True
-    auction = artwork.auction
+    auction = artwork.active_auction
     if auction is None:
         return False
     return auction.winner_id is not None and auction.winner_id == current_user.id

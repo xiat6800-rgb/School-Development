@@ -156,7 +156,7 @@ def test_publish_requires_saved_image(app, make_user, client, login):
         follow_redirects=True,
     )
     assert "出品できません" in response.get_data(as_text=True)
-    assert artwork.auction is None
+    assert artwork.active_auction is None
 
 
 def test_publish_creates_active_auction(app, make_user, make_artwork, client, login):
@@ -178,7 +178,7 @@ def test_publish_creates_active_auction(app, make_user, make_artwork, client, lo
     db.session.expire_all()
     refreshed = Artwork.query.get(artwork.id)
     assert refreshed.status == "listed"
-    auction = refreshed.auction
+    auction = refreshed.active_auction
     assert auction is not None
     assert auction.status == "active"
     assert auction.start_price == 200

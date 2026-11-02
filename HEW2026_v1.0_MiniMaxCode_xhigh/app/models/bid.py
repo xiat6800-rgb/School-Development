@@ -26,6 +26,9 @@ class Bid(db.Model):
         db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
     )
     bid_amount = db.Column(db.Integer, nullable=False)
+    # 入札受理時に残高から差し引いた額のうち、まだ返却していない額。
+    # 最高入札の入札行だけが正の値を保持する。
+    held_points = db.Column(db.Integer, nullable=False, default=0)
     is_auto_bid = db.Column(db.Boolean, nullable=False, default=False)
     bid_status = db.Column(db.String(20), nullable=False, default=ACCEPTED)
     created_at = db.Column(

@@ -1,17 +1,21 @@
 """作品と描画セッションの模型。
 
 - 作品（Artwork）: 下書き ``draft`` → 出品 ``listed`` → 落札 ``sold``
+  （取消 ``cancelled`` / 管理者の非公開化 ``hidden`` も持つ）
 - 描画セッション（DrawingSession）: 開始時刻・期限・保存猶予をサーバー管理
 """
 
 from __future__ import annotations
 
 from app.extensions import db
+from app.models.auction import ACTIVE
 from app.utils import utcnow
 
 DRAFT = "draft"
 LISTED = "listed"
 SOLD = "sold"
+CANCELLED = "cancelled"
+HIDDEN = "hidden"
 
 
 class Artwork(db.Model):
@@ -28,13 +32,20 @@ class Artwork(db.Model):
     image_path = db.Column(db.String(500), nullable=True)
     layer_archive_path = db.Column(db.String(500), nullable=True)
     status = db.Column(db.String(20), nullable=False, default=DRAFT, index=True)
+    hidden_reason = db.Column(db.String(300), nullable=True)
+    hidden_at = db.Column(db.DateTime, nullable=True)
+    hidden_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
+    )
     save_completed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=utcnow, onupdate=utcnow
     )
 
-    artist = db.relationship("User", backref="artworks")
+    artist = db.relationship(
+        "User", backref="artworks", foreign_keys=[artist_id]
+    )
     drawing_session = db.relationship(
         "DrawingSession",
         backref="artwork",
@@ -42,7 +53,7 @@ class Artwork(db.Model):
         cascade="all, delete-orphan",
     )
     auction = db.relationship(
-        "Auction", backref="artwork", uselist=False, cascade="all, delete-orphan"
+        "Auction", backref="artwork", cascade="all, delete-orphan"
     )
     tag_links = db.relationship(
         "ArtworkTag", backref="artwork", cascade="all, delete-orphan"
@@ -54,6 +65,19 @@ class Artwork(db.Model):
         lazy="selectin",
         viewonly=True,
     )
+
+    @property
+    def active_auction(self):
+        """開催中の競売を返す。なければ None。"""
+        for auction in self.auction:
+            if auction.status == ACTIVE:
+                return auction
+        return None
+
+    @property
+    def is_hidden(self) -> bool:
+        """管理者によって非公開化された作品かどうかを返す。"""
+        return self.status == HIDDEN
 
     @property
     def is_public(self) -> bool:

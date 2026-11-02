@@ -33,8 +33,15 @@ class Notification(db.Model):
         db.Integer, db.ForeignKey("auctions.id"), nullable=True, index=True
     )
     related_bid_id = db.Column(db.Integer, db.ForeignKey("bids.id"), nullable=True)
+    revoked_at = db.Column(db.DateTime, nullable=True)
+    revoked_by_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
+    )
+    revoke_reason = db.Column(db.String(300), nullable=True)
     created_at = db.Column(
         db.DateTime, nullable=False, default=utcnow, index=True
     )
 
-    user = db.relationship("User", backref="notifications")
+    user = db.relationship(
+        "User", backref="notifications", foreign_keys=[user_id]
+    )

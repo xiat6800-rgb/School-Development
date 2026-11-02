@@ -91,11 +91,11 @@
                   <span class="badge badge-live">出品中</span>
                 {% endif %}
               </td>
-              <td class="price">{{ artwork.auction.current_price if artwork.auction else '-' }}pt</td>
+              <td class="price">{{ artwork.active_auction.current_price if artwork.active_auction else '-' }}pt</td>
               <td>
-                {% if artwork.auction %}
+                {% if artwork.active_auction %}
                   <a class="btn btn-sm"
-                     href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auction.id) }}">詳細</a>
+                     href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.active_auction.id) }}">詳細</a>
                 {% endif %}
                 <a class="btn btn-sm btn-secondary"
                    href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='original') }}">原寸PNG</a>
@@ -117,9 +117,9 @@
           {% for favorite in artwork_favorites %}
             <li>
               {{ favorite.artwork.title or '無題の作品' }}
-              {% if favorite.artwork.auction %}
+              {% if favorite.artwork.active_auction %}
                 <a class="btn btn-sm"
-                   href="{{ url_for('auctions.show_auction_detail', auction_id=favorite.artwork.auction.id) }}">詳細</a>
+                   href="{{ url_for('auctions.show_auction_detail', auction_id=favorite.artwork.active_auction.id) }}">詳細</a>
               {% endif %}
             </li>
           {% endfor %}

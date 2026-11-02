@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 出品設定{% endblock %}
+
+{% block content %}
+  <h1>出品設定</h1>
+
+  <section class="card">
+    <div class="card-image">
+      <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}"
+           alt="{{ artwork.title or '作品' }}" width="240">
+    </div>
+    <p class="muted">
+      画像と全レイヤーの ZIP は保存済みです。保存後は絵を編集できません。
+      出品すると立刻オークションが開始されます。
+    </p>
+
+    <form method="post" action="{{ url_for('artworks.publish_auction', artwork_id=artwork.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-field">
+        <label for="title">タイトル</label>
+        <input type="text" id="title" name="title" value="{{ artwork.title or '' }}" maxlength="200" required>
+      </div>
+      <div class="form-field">
+        <label for="description">説明</label>
+        <textarea id="description" name="description" rows="4">{{ artwork.description or '' }}</textarea>
+      </div>
+      <div class="form-field">
+        <label>タグ（複数選択可・検索は AND 条件）</label>
+        {% for tag in tags %}
+          <label>
+            <input type="checkbox" name="tag_ids" value="{{ tag.id }}">
+            #{{ tag.name }}
+          </label>
+        {% endfor %}
+      </div>
+      <div class="form-field">
+        <label for="start_price">開始価格（0 以上の整数 pt）</label>
+        <input type="number" id="start_price" name="start_price" value="0" min="0" step="1" required>
+      </div>
+      <div class="form-field">
+        <label for="duration_minutes">開催時間</label>
+        <select id="duration_minutes" name="duration_minutes">
+          {% for minutes in durations %}
+            <option value="{{ minutes }}" {% if minutes == default_minutes %}selected{% endif %}>
+              {{ minutes }}分
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">出品する</button>
+    </form>
+  </section>
+{% endblock %}

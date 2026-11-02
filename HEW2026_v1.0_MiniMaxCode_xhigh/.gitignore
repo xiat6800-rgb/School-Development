@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 設定・秘密情報
+.env
+
+# アップロード実体・DB・テスト生成物
+app/uploads/artworks/*
+app/uploads/layers/*
+!app/uploads/artworks/.gitkeep
+!app/uploads/layers/.gitkeep
+instance/
+*.db
+*.sqlite3
+
+# 開発用プレビュー生成物（tools/make_preview_pages.py）
+app/static/_preview_*.html
+
+# テスト・解析
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/

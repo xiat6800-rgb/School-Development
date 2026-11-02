@@ -1,0 +1,1073 @@
+/* ============================================================================
+   HEW2026 — 製図図面の落札所
+   ----------------------------------------------------------------------------
+   コンセプト
+     紙面 … 濃紺の方眼（製図用紙）。実作業は白い用紙片をその上に置く。
+     題字欄 … ヘッダーは図面の「表題欄」。図番・版・状態在这一带。
+     札     … 価格と時間は等幅（入札札）。本文は明朝＋ゴシックの対。
+     墨     … 影はぼかせず、ずらした黒（用紙が図面から浮く表現）。
+
+   依存 … 外部フォント / CDN なし（システムフォントスタックのみ）。
+   構成 … 1. トークン  2. 基盤  3. 題字欄  4. 用紙片  5. 部品
+           6. 状態表示  7. 表・一覧  8. 描画台  9. レスポンシブ
+   ========================================================================== */
+
+/* ============================ 1. トークン ================================ */
+:root {
+  /* 墨・図面の地 */
+  --ink: #0e1729;
+  --ink-panel: #16223c;
+  --ink-raise: #1e2c4a;
+  --rule: #31456e;
+  --rule-soft: rgba(147, 173, 214, 0.22);
+
+  /* 用紙 */
+  --paper: #e9eef6;
+  --paper-slip: #fbfcfe;
+  --paper-edge: rgba(16, 26, 48, 0.16);
+
+  /* 鉛筆（文字） */
+  --graphite: #333f53;
+  --graphite-soft: #6a778c;
+  --graphite-faint: #8d98a8;
+
+  /* 図面上（暗い地）で使う文字色。紙片の内側では .card が上書きする */
+  --text: #dfe8f6;
+  --text-soft: #9db0cf;
+  --text-dim: #7b8fb2;
+  --link: #8ec1f2;
+
+  /* 差し色（意味を持つ色は一色ずつ） */
+  --amber: #e3a63f;          /* 開催中・強調（暗背景の上） */
+  --amber-ink: #8a5a12;      /* 同上（明るい紙の上） */
+  --shu: #c2472f;            /* 落札・終了・危険 */
+  --jade: #2c7a61;           /* 成功・確定 */
+
+  /* 書体 */
+  --font-display: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", "Noto Serif JP",
+    "MS PMincho", "ＭＳ Ｐ明朝", serif;
+  --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic", "游ゴシック", "Noto Sans JP",
+    Meiryo, "ＭＳ Ｐゴシック", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas,
+    "Roboto Mono", Menlo, monospace;
+
+  /* 寸法 */
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 14px;
+  --gap-4: 22px;
+  --gap-5: 34px;
+  --gap-6: 52px;
+  --rule-hair: 1px solid var(--rule);
+  --lift: 5px 5px 0 rgba(10, 17, 32, 0.32);
+  --lift-sm: 3px 3px 0 rgba(10, 17, 32, 0.28);
+}
+
+/* ============================== 2. 基盤 ================================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+  background-color: var(--ink);
+  /* 方眼：粗い主罫線と細かい副罫線 */
+  background-image:
+    linear-gradient(var(--rule-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px),
+    linear-gradient(rgba(147, 173, 214, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 173, 214, 0.09) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  background-attachment: fixed;
+}
+
+/* 図面の外形線 */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  top: 14px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--rule);
+  pointer-events: none;
+  z-index: 1;
+}
+
+body::before {
+  left: 14px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+body::after {
+  right: 14px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--gap-3);
+  line-height: 1.4;
+}
+
+h1 {
+  font-size: clamp(24px, 3.2vw, 34px);
+  letter-spacing: 0.08em;
+}
+
+h2 {
+  font-size: clamp(19px, 2.2vw, 24px);
+  padding-bottom: var(--gap-2);
+  border-bottom: var(--rule-hair);
+}
+
+h3 {
+  font-size: 17px;
+}
+
+p {
+  margin: 0 0 var(--gap-3);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+hr {
+  border: 0;
+  border-top: var(--rule-hair);
+  margin: var(--gap-4) 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(227, 166, 63, 0.32);
+}
+
+/* ============================ 3. 題字欄（ヘッダー） ======================= */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: linear-gradient(180deg, #1a2745 0%, var(--ink-panel) 100%);
+  border-bottom: 1px solid var(--rule);
+  box-shadow: 0 10px 24px rgba(6, 11, 22, 0.35);
+}
+
+/* 表題欄の外枠（実線は二重罫） */
+.site-header::after {
+  content: "";
+  display: block;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rule) 0 18px,
+    transparent 18px 26px
+  );
+}
+
+.site-header .container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap-4);
+  padding: var(--gap-3) var(--gap-4);
+  flex-wrap: wrap;
+}
+
+.site-header .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  letter-spacing: 0.16em;
+  color: #f2f6fc;
+  text-decoration: none;
+}
+
+.site-header .brand:hover {
+  text-decoration: none;
+  color: var(--amber);
+}
+
+/* 図番・版の行（図面の注記） */
+.site-header .brand::after {
+  content: "SHEET 01 / 01 · REV v1.0 · 落札所";
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(173, 196, 233, 0.72);
+}
+
+.site-header .nav {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  flex-wrap: wrap;
+}
+
+.site-header .nav a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(214, 227, 247, 0.9);
+  padding: 3px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.site-header .nav a:hover {
+  color: var(--amber);
+  text-decoration: none;
+  border-bottom-color: var(--amber);
+}
+
+.site-header .nav a.is-active {
+  color: var(--amber);
+  border-bottom-color: var(--amber);
+}
+
+.site-header .nav form {
+  margin: 0;
+}
+
+.site-header .point-balance {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--amber);
+  border: 1px solid rgba(227, 166, 63, 0.45);
+  padding: 2px 8px;
+  background: rgba(227, 166, 63, 0.1);
+}
+
+.container {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--gap-5) var(--gap-4) var(--gap-6);
+}
+
+main.container {
+  min-height: 70vh;
+}
+
+/* 主面の索引タブ（図面の付箋タブ） */
+main .nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--gap-4);
+  padding-bottom: var(--gap-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+main .nav a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(214, 227, 247, 0.86);
+  padding: 5px 12px;
+  border: 1px solid var(--rule);
+  background: rgba(147, 173, 214, 0.08);
+}
+
+main .nav a:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+  text-decoration: none;
+}
+
+/* ============================= 4. 用紙片 ================================= */
+.card {
+  position: relative;
+  background: var(--paper-slip);
+  border: 1px solid var(--paper-edge);
+  border-radius: 3px;
+  padding: var(--gap-4);
+  margin-bottom: var(--gap-4);
+  box-shadow: var(--lift);
+  color: var(--graphite);
+
+  /* 紙の上では文字・罫線・リンクを鉛筆のものへ差し替える */
+  --text: var(--graphite);
+  --text-soft: var(--graphite-soft);
+  --text-dim: var(--graphite-faint);
+  --link: #1c4f86;
+  --rule-hair: 1px solid var(--paper-edge);
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+.card h1,
+.card h2,
+.card h3 {
+  color: #1a2337;
+}
+
+.card h2 {
+  border-bottom: var(--rule-hair);
+}
+
+/* 用紙片の角に裁ちマーク */
+.card::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--graphite-faint);
+  border-right: 1px solid var(--graphite-faint);
+  opacity: 0.6;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--gap-4);
+  margin-bottom: var(--gap-5);
+}
+
+.card-grid .card {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-grid .card h3 {
+  margin-bottom: var(--gap-1);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-4);
+  align-items: start;
+}
+
+.auth-card {
+  max-width: 480px;
+  margin: 0 auto var(--gap-5);
+}
+
+/* 作品サムネイル（画用紙に貼られた写真） */
+.card-image {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  padding: 6px;
+  margin-bottom: var(--gap-3);
+}
+
+.card-image img {
+  width: 100%;
+  height: auto;
+  background: #fff;
+}
+
+.muted {
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.empty {
+  border: 1px dashed var(--rule);
+  border-radius: 3px;
+  padding: var(--gap-4);
+  text-align: center;
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  background: rgba(147, 173, 214, 0.07);
+}
+
+.card .empty {
+  border-color: var(--graphite-faint);
+  color: var(--graphite-soft);
+  background: rgba(251, 252, 254, 0.6);
+}
+
+/* ============================== 5. 部品 ================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  padding: 10px 18px;
+  color: #eef3fb;
+  background: var(--ink-panel);
+  border: 1px solid var(--ink-panel);
+  border-radius: 3px;
+  box-shadow: var(--lift-sm);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.btn:hover {
+  text-decoration: none;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 rgba(10, 17, 32, 0.34);
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(10, 17, 32, 0.34);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--lift-sm);
+}
+
+.btn-primary {
+  background: var(--amber);
+  border-color: var(--amber-deep);
+  color: #241704;
+}
+
+.btn-primary:hover {
+  background: #efb558;
+}
+
+.btn-secondary {
+  background: var(--paper-slip);
+  border-color: var(--paper-edge);
+  color: var(--graphite);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: var(--paper);
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: var(--shu);
+  border-color: #9c3722;
+  color: #fff5f2;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--rule);
+  color: rgba(214, 227, 247, 0.92);
+  box-shadow: none;
+}
+
+.btn-ghost:hover {
+  background: rgba(147, 173, 214, 0.12);
+  color: var(--amber);
+  box-shadow: none;
+}
+
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* 表・札 */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  padding: 1px 7px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  color: var(--graphite-soft);
+  background: rgba(251, 252, 254, 0.86);
+  border-color: var(--paper-edge);
+  white-space: nowrap;
+}
+
+a.badge:hover {
+  text-decoration: none;
+  border-color: var(--graphite-soft);
+  color: var(--graphite);
+}
+
+.badge-live {
+  color: var(--amber-ink);
+  border-color: rgba(138, 90, 18, 0.45);
+  background: rgba(227, 166, 63, 0.16);
+}
+
+.badge-live::before {
+  content: "◉ ";
+  font-size: 9px;
+}
+
+.badge-ended {
+  color: var(--graphite-soft);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--paper) 0 4px,
+    #e3e8f1 4px 8px
+  );
+}
+
+.badge-sold {
+  color: #fff;
+  background: var(--shu);
+  border-color: #9c3722;
+}
+
+.point-balance {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  width: fit-content;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--amber-ink);
+  background: rgba(227, 166, 63, 0.14);
+  border: 1px solid rgba(138, 90, 18, 0.32);
+  padding: 1px 9px;
+}
+
+/* 価格札 */
+.price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1a2337;
+  margin: 0;
+}
+
+/* 落槌タイマー */
+.countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: #1a2337;
+  padding: 1px 8px;
+  border-bottom: 2px solid var(--paper-edge);
+  display: inline-block;
+}
+
+.countdown.is-warning {
+  color: var(--amber-ink);
+  border-bottom-color: var(--amber);
+  animation: tick 1s steps(2, end) infinite;
+}
+
+.countdown.is-ended {
+  color: var(--shu);
+  border-bottom-color: var(--shu);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+@keyframes tick {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* お知らせ（用紙に挟まれた伝票） */
+.flash {
+  background: var(--paper-slip);
+  border: 1px solid var(--paper-edge);
+  border-left: 4px solid var(--graphite-soft);
+  border-radius: 2px;
+  padding: 11px 16px;
+  margin-bottom: var(--gap-3);
+  color: var(--graphite);
+  font-size: 14px;
+  box-shadow: var(--lift-sm);
+}
+
+.flash-error {
+  border-left-color: var(--shu);
+}
+
+.flash-success {
+  border-left-color: var(--jade);
+}
+
+.flash-info {
+  border-left-color: #2f6ba8;
+}
+
+/* ============================== 6. フォーム ============================== */
+.form-field {
+  margin-bottom: var(--gap-3);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-field label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-soft);
+}
+
+.form-field input[type="text"],
+.form-field input[type="password"],
+.form-field input[type="number"],
+.form-field input[type="email"],
+.form-field select,
+.form-field textarea {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--graphite);
+  background: #fff;
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  padding: 9px 11px;
+  width: 100%;
+}
+
+.form-field input[type="number"],
+.form-field input[type="color"] {
+  font-family: var(--font-mono);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(227, 166, 63, 0.28);
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.form-field input[type="color"] {
+  padding: 2px;
+  height: 36px;
+  width: 56px;
+}
+
+.form-field input[type="range"] {
+  accent-color: var(--amber-ink);
+  width: 130px;
+}
+
+.form-field input[type="checkbox"] {
+  accent-color: var(--amber-ink);
+  width: 16px;
+  height: 16px;
+}
+
+.form-field label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--graphite);
+}
+
+/* ============================ 7. 表・一覧 ================================ */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: transparent;
+}
+
+.table th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--text-soft);
+  text-align: left;
+  padding: 6px 10px 6px 0;
+  border-bottom: 3px double var(--paper-edge);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 9px 10px 9px 0;
+  border-bottom: var(--rule-hair);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table td.price,
+.table td .price {
+  font-size: 15px;
+}
+
+.table img {
+  width: 96px;
+  border: 1px solid var(--paper-edge);
+}
+
+.layer-list {
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--graphite);
+}
+
+.layer-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  padding: 10px 14px;
+  border-bottom: var(--rule-hair);
+  font-size: 14px;
+}
+
+.layer-list li:last-child {
+  border-bottom: 0;
+}
+
+.pagination {
+  display: flex;
+  gap: var(--gap-2);
+  justify-content: center;
+  margin-top: var(--gap-4);
+}
+
+.pagination span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 3px 9px;
+  border: 1px solid var(--paper-edge);
+  background: #fff;
+  color: var(--graphite);
+}
+
+/* ============================ 8. 描画台 ================================= */
+/* 工房（キャンバス + 道具立） */
+.studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 264px;
+  gap: var(--gap-3);
+  align-items: start;
+  margin-bottom: var(--gap-4);
+}
+
+.canvas-wrap {
+  position: relative;
+  background: var(--paper-slip);
+  border: 1px solid var(--paper-edge);
+  padding: 14px;
+  margin-bottom: 0;
+  box-shadow: var(--lift);
+}
+
+.canvas-wrap canvas {
+  /* 描画面は画面内に収める（1024px の実寸は保ったまま表示だけ縮める） */
+  width: auto;
+  max-width: 100%;
+  max-height: clamp(300px, calc(100vh - 430px), 780px);
+  margin: 0 auto;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--paper-edge);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* 裁ちマーク（四隅） */
+.canvas-wrap::before,
+.canvas-wrap::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--graphite-faint);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.canvas-wrap::before {
+  top: -6px;
+  left: -6px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.canvas-wrap::after {
+  bottom: -6px;
+  right: -6px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-3);
+  flex-wrap: wrap;
+  padding: var(--gap-3) var(--gap-4);
+  margin-bottom: var(--gap-4);
+  background: var(--paper-slip);
+  border: 1px solid var(--paper-edge);
+  border-radius: 3px;
+  box-shadow: var(--lift-sm);
+}
+
+.toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--graphite-soft);
+}
+
+/* 工具の区切り（図面の補助線） */
+.toolbar > * + * {
+  position: relative;
+}
+
+.toolbar > * + *::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--gap-3) / -2);
+  top: 50%;
+  width: 1px;
+  height: 20px;
+  transform: translateY(-50%);
+  background: var(--paper-edge);
+}
+
+.toolbar > .btn + .btn::before,
+.toolbar > label + .btn::before {
+  display: none;
+}
+
+/* 道具立（縦置き）: 区切りは横罫にする */
+.studio .toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-2);
+  margin-bottom: 0;
+  position: sticky;
+  top: 96px;
+}
+
+.studio .toolbar label {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.studio .toolbar select,
+.studio .toolbar input[type="color"],
+.studio .toolbar input[type="range"] {
+  margin-left: auto;
+}
+
+.studio .toolbar .btn {
+  width: 100%;
+}
+
+.studio .toolbar > * + *::before {
+  left: 0;
+  top: calc(var(--gap-2) / -2);
+  width: 100%;
+  height: 1px;
+  transform: none;
+}
+
+/* ========================== 9. レスポンシブ ============================== */
+@media (max-width: 1024px) {
+  /* 道具台は画面下に並べる */
+  .studio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio .toolbar {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .studio .toolbar label {
+    justify-content: flex-start;
+    width: auto;
+  }
+
+  .studio .toolbar .btn {
+    width: auto;
+  }
+
+  .studio .toolbar > * + *::before {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 14.5px;
+  }
+
+  .container {
+    padding: var(--gap-4) var(--gap-3) var(--gap-5);
+  }
+
+  .site-header .container {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--gap-2);
+  }
+
+  .site-header .nav {
+    gap: var(--gap-3);
+    width: 100%;
+  }
+
+  .card {
+    padding: var(--gap-3);
+    box-shadow: 3px 3px 0 rgba(10, 17, 32, 0.3);
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--gap-3);
+  }
+
+  .toolbar {
+    gap: var(--gap-2);
+    padding: var(--gap-3);
+  }
+
+  .toolbar > * + *::before {
+    display: none;
+  }
+
+  .table {
+    font-size: 13px;
+  }
+
+  .table th,
+  .table td {
+    padding: 7px 6px 7px 0;
+  }
+
+  .price {
+    font-size: 19px;
+  }
+
+  .countdown {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header .brand {
+    font-size: 18px;
+  }
+
+  .site-header .nav a {
+    font-size: 11px;
+  }
+
+  .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .table {
+    /* 狭幅では表のレイアウトを保ったまま横スクロールさせる
+       （display:block だと列が潰れて文字が連続して見えるため） */
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table thead,
+  .table tbody {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .table td {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

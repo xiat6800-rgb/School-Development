@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 描画{% endblock %}
+
+{% block content %}
+  <h1>絵を描く</h1>
+
+  <div class="card">
+    <p>
+      残り時間
+      <span id="timer" class="countdown"
+            data-deadline="{{ deadline_iso }}"
+            data-grace-seconds="{{ grace_seconds }}">--:--</span>
+      <span class="muted">（{{ session.duration_seconds }} 秒の制限時間・サーバー管理）</span>
+    </p>
+    <p class="muted" id="canvas-hint">
+      ペンを選んでキャンバスに描いてください。レイヤー操作と元に戻す操作は
+      ブラウザ内（IndexedDB）に一時保存され、同じブラウザで復元できます。
+      時間が切れると保存され、保存後の加筆はできません。
+    </p>
+    <div id="status" class="flash flash-info">描画を準備しています。</div>
+  </div>
+
+  <div class="studio">
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="{{ canvas_size }}" height="{{ canvas_size }}"
+              data-listing-url="{{ url_for('artworks.show_listing_form', artwork_id=artwork.id) }}"></canvas>
+    </div>
+
+    <div class="toolbar card">
+      <label>ペン
+        <select id="pen-type">
+          <option value="gpen">Gペン</option>
+          <option value="round" selected>丸ペン</option>
+          <option value="blur">ぼかし</option>
+          <option value="eraser">消しゴム</option>
+        </select>
+      </label>
+      <label>色 <input type="color" id="pen-color" value="#1f4b7a"></label>
+      <label>太さ <input type="range" id="pen-size" min="1" max="40" value="6"></label>
+
+      <button id="btn-undo" type="button" class="btn btn-sm btn-secondary">元に戻す</button>
+      <button id="btn-redo" type="button" class="btn btn-sm btn-secondary">やり直す</button>
+      <button id="btn-clear" type="button" class="btn btn-sm btn-secondary">現在層を消去</button>
+
+      <label>レイヤー
+        <select id="layer-select"></select>
+      </label>
+      <button id="btn-add-layer" type="button" class="btn btn-sm">層を追加</button>
+      <button id="btn-delete-layer" type="button" class="btn btn-sm">層を削除</button>
+      <button id="btn-layer-up" type="button" class="btn btn-sm">上へ</button>
+      <button id="btn-layer-down" type="button" class="btn btn-sm">下へ</button>
+      <label><input type="checkbox" id="layer-visible" checked> 表示</label>
+      <label>不透明度 <input type="range" id="layer-opacity" min="0" max="1" step="0.05" value="1"></label>
+
+      <button id="btn-finish" type="button" class="btn btn-primary">完成して保存</button>
+    </div>
+  </div>
+
+  <form id="save-form" method="post" action="{{ url_for('artworks.save_draft', artwork_id=artwork.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+{% endblock %}

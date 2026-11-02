@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 復旧コードで再設定{% endblock %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1>パスワードの再設定</h1>
+    <p class="muted">
+      ユーザー名と、登録時にお受け取りいただいた復旧コードを入力してください。
+      使用した復旧コードは自動的に無効になります。
+    </p>
+    <form method="post" action="{{ url_for('auth.recover') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-field">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" value="{{ username or '' }}" required>
+      </div>
+      <div class="form-field">
+        <label for="recovery_code">復旧コード</label>
+        <input type="text" id="recovery_code" name="recovery_code"
+               placeholder="XXXX-XXXX-XXXX" required>
+      </div>
+      <div class="form-field">
+        <label for="new_password">新しいパスワード（8文字以上）</label>
+        <input type="password" id="new_password" name="new_password"
+               autocomplete="new-password" required>
+      </div>
+      <div class="form-field">
+        <label for="new_password_confirm">新しいパスワード（確認）</label>
+        <input type="password" id="new_password_confirm" name="new_password_confirm"
+               autocomplete="new-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit">再設定する</button>
+    </form>
+  </section>
+{% endblock %}

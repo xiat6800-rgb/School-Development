@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · ログイン{% endblock %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1>ログイン</h1>
+    <p class="muted">ユーザー名とパスワードでログインします。メールアドレスは使用しません。</p>
+    <form method="post" action="{{ url_for('auth.login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-field">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" value="{{ username or '' }}"
+               autocomplete="username" required>
+      </div>
+      <div class="form-field">
+        <label for="password">パスワード</label>
+        <input type="password" id="password" name="password"
+               autocomplete="current-password" required>
+      </div>
+      <div class="form-field">
+        <label><input type="checkbox" name="remember" value="1"> ログイン状態を保持する</label>
+      </div>
+      <button class="btn btn-primary" type="submit">ログイン</button>
+    </form>
+    <p class="muted">
+      パスワードを忘れた方は
+      <a href="{{ url_for('auth.recover') }}">復旧コードで再設定</a> できます。<br>
+      アカウントをお持ちでない方は
+      <a href="{{ url_for('auth.register') }}">新規登録</a> へ。
+    </p>
+  </section>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 支払い{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>支払い</h1>
+    <p class="flash flash-info">
+      遷移先のみの画面です。Ver0.5 では決済通信・テスト決済・実課金・
+      決済によるポイント加算は行っていません。残高は {{ balance }}pt のままです。
+    </p>
+    <p>
+      <a class="btn btn-secondary" href="{{ url_for('points.show_charge') }}">チャージ画面へ戻る</a>
+    </p>
+  </section>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 商品詳細{% endblock %}
+
+{% block content %}
+  <h1>{{ artwork.title or '無題の作品' }}</h1>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-image">
+        <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}"
+             alt="{{ artwork.title or '作品' }}">
+      </div>
+      <p class="muted">作者：{{ artwork.artist.disp_name }}</p>
+      {% if artwork.description %}
+        <p>{{ artwork.description }}</p>
+      {% endif %}
+      <p class="muted">
+        {% for tag in artwork.tags %}<span class="badge">#{{ tag.name }}</span>{% endfor %}
+      </p>
+      {% if current_user.is_authenticated %}
+        <form method="post"
+              action="{{ url_for('favorites.toggle_artwork_favorite', artwork_id=artwork.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="back_to" value="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+          <button class="btn btn-sm btn-secondary" type="submit">作品をお気に入りに登録</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <p>
+        残り時間
+        <span id="auction-timer" class="countdown"
+              data-end-time="{{ auction.end_time.strftime('%Y-%m-%dT%H:%M:%S') }}">--:--</span>
+        <span class="muted">終了 {{ end_time_label }}（日本時間）</span>
+      </p>
+
+      <p class="price">現在価格 <span id="current-price">{{ auction.current_price }}</span> pt</p>
+      <p class="muted">開始価格 {{ auction.start_price }}pt</p>
+
+      {% if auction.has_winner %}
+        <p class="badge badge-sold">落札者：{{ auction.winner.disp_name }}（{{ auction.final_price }}pt）</p>
+      {% elif auction.status != 'active' or is_expired %}
+        <p class="badge badge-ended">終了・結果確定待ち</p>
+      {% else %}
+        <span class="badge badge-live">開催中</span>
+      {% endif %}
+
+      {% if current_user.is_authenticated %}
+        <form method="post" action="{{ url_for('favorites.toggle_auction_favorite', auction_id=auction.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="back_to" value="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+          <button id="btn-favorite-auction" class="btn btn-sm btn-secondary" type="submit">
+            オークションをお気に入りに登録
+          </button>
+        </form>
+      {% endif %}
+
+      {% if is_seller %}
+        <p class="muted">あなたは出品者です。自分のオークションには入札できません。</p>
+      {% endif %}
+
+      {% if auction.status == 'active' and not is_seller %}
+        <h2>入札する</h2>
+        {% if confirm_bid_amount %}
+          <p class="flash flash-info">
+            入札額 {{ confirm_bid_amount }}pt で確定しますか。
+            価格が変わっている場合は入札額を入力し直してください。
+          </p>
+        {% endif %}
+        <form id="bid-form" method="post" action="{{ url_for('auctions.submit_bid', auction_id=auction.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" id="expected-price" name="expected_price" value="{{ auction.current_price }}">
+          <input type="hidden" id="bid-confirmed" name="confirmed"
+                 value="{{ '1' if confirm_bid_amount else '0' }}">
+          <div class="form-field">
+            <label for="bid-amount">入札額（現在価格 + {{ min_bid_amount - auction.current_price }}pt 以上）</label>
+            <input type="number" id="bid-amount" name="bid_amount"
+                   value="{{ confirm_bid_amount or '' }}" min="{{ min_bid_amount }}" step="1" required>
+          </div>
+          <button class="btn btn-primary" type="submit">
+            {{ '入札を確定する' if confirm_bid_amount else '入札する' }}
+          </button>
+        </form>
+
+        <h2>自動入札</h2>
+        {% if auto_bid and auto_bid.is_active %}
+          <p class="muted">現在の上限額：{{ auto_bid.max_amount }}pt</p>
+          <form method="post" action="{{ url_for('auctions.stop_auto_bid', auction_id=auction.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-secondary" type="submit">自動入札を停止する</button>
+          </form>
+        {% endif %}
+        <form id="auto-bid-form" method="post" action="{{ url_for('auctions.set_auto_bid', auction_id=auction.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-field">
+            <label for="auto-bid-max">上限額（他の人能入札したときに自動で競り上げます）</label>
+            <input type="number" id="auto-bid-max" name="max_amount" min="{{ min_bid_amount }}" step="1" required>
+          </div>
+          <button class="btn btn-secondary" type="submit">自動入札を設定する</button>
+        </form>
+      {% endif %}
+
+      {% if current_user.is_authenticated
+            and (artwork.artist_id == current_user.id or auction.winner_id == current_user.id) %}
+        <h2>ダウンロード</h2>
+        <p class="muted">作者と落札確定済みの落札者だけが取得できます。</p>
+        <p>
+          <a class="btn btn-sm btn-secondary"
+             href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='original') }}">原寸PNG</a>
+          <a class="btn btn-sm btn-secondary"
+             href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='layers') }}">レイヤーZIP</a>
+        </p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>入札履歴</h2>
+    {% if bids %}
+      <table class="table">
+        <tr><th>入札額</th><th>入札者</th><th>種別</th><th>日時(UTC)</th></tr>
+        {% for bid in bids %}
+          <tr>
+            <td class="price">{{ bid.bid_amount }}pt</td>
+            <td>{{ bid.bidder.disp_name }}</td>
+            <td>{{ '自動入札' if bid.is_auto_bid else '手動入札' }}</td>
+            <td>{{ bid.created_at.strftime('%m/%d %H:%M:%S') }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="empty">まだ入札はありません。</p>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/detail.js') }}"></script>
+{% endblock %}

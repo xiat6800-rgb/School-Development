@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 新規登録{% endblock %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1>新規登録</h1>
+    <p class="muted">
+      ユーザー名とパスワードを設定してください。メールアドレスは使用しません。<br>
+      登録後、<strong>復旧コードを一度だけ表示</strong>します。パスワードと復旧コードの両方を失うと
+      アカウントを復旧できません。必ず保管してください。
+    </p>
+    <form method="post" action="{{ url_for('auth.register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-field">
+        <label for="username">ユーザー名（3〜20文字・英数字と _ -）</label>
+        <input type="text" id="username" name="username" value="{{ username or '' }}"
+               autocomplete="username" required>
+      </div>
+      <div class="form-field">
+        <label for="password">パスワード（8文字以上）</label>
+        <input type="password" id="password" name="password"
+               autocomplete="new-password" required>
+      </div>
+      <div class="form-field">
+        <label for="password_confirm">パスワード（確認）</label>
+        <input type="password" id="password_confirm" name="password_confirm"
+               autocomplete="new-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit">登録する</button>
+    </form>
+  </section>
+{% endblock %}

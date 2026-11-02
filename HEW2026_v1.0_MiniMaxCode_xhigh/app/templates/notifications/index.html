@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 通知{% endblock %}
+
+{% block content %}
+  <h1>通知</h1>
+  <p class="muted">未読 {{ unread_count }} 件。メール通知は提供していません（アプリ内のみ）。</p>
+
+  {% if notifications %}
+    <table class="table">
+      <tr><th>日時(UTC)</th><th>内容</th><th>状態</th><th>操作</th></tr>
+      {% for notification in notifications %}
+        <tr>
+          <td>{{ notification.created_at.strftime('%m/%d %H:%M') }}</td>
+          <td>
+            <strong>{{ notification.title }}</strong><br>
+            <span class="muted">{{ notification.message }}</span>
+          </td>
+          <td>{{ '既読' if notification.is_read else '未読' }}</td>
+          <td>
+            {% if not notification.is_read %}
+              <form method="post"
+                    action="{{ url_for('notifications.mark_notification_read', notification_id=notification.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-secondary" type="submit">既読にする</button>
+              </form>
+            {% endif %}
+            {% if notification.related_auction_id %}
+              <a class="btn btn-sm"
+                 href="{{ url_for('auctions.show_auction_detail', auction_id=notification.related_auction_id) }}">
+                商品詳細
+              </a>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="empty">通知はありません。</p>
+  {% endif %}
+{% endblock %}

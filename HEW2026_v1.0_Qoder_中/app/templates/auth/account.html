@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}アカウント - HEW{% endblock %}
+{% block content %}
+<h1>アカウント</h1>
+<p>ユーザー名: <strong>{{ current_user.username }}</strong> / ポイント残高: <strong>{{ current_user.point_balance }}pt</strong></p>
+
+<section>
+  <h2>表示名の変更</h2>
+  <form method="post" action="{{ url_for('auth.update_display_name') }}" class="form inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="disp_name" value="{{ current_user.disp_name }}" maxlength="50" required>
+    <button type="submit">更新</button>
+  </form>
+</section>
+
+<section>
+  <h2>復旧コードの再発行</h2>
+  <form method="post" action="{{ url_for('auth.regenerate_recovery_code') }}" class="form inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="password" name="password" placeholder="現在のパスワード" required>
+    <button type="submit">再発行</button>
+  </form>
+  <p class="help">旧コードは無効になり、新しいコードが一度だけ表示されます。</p>
+</section>
+
+<section>
+  <h2>下書き一覧</h2>
+  <ul>
+    {% for draft in drafts %}
+    <li>
+      <a href="{{ url_for('artworks.show_draft', artwork_id=draft.id) }}">
+        作品 #{{ draft.id }} {{ draft.title or '（無題）' }}
+      </a>
+      {% if draft.is_saved %}<span class="tag-ok">正式保存済み</span> →
+      <a href="{{ url_for('artworks.show_listing_form', artwork_id=draft.id) }}">出品設定へ</a>
+      {% elif draft.drawing_started_at %}<span class="tag-warn">未保存</span>
+      <a href="{{ url_for('artworks.show_canvas', artwork_id=draft.id) }}">描画画面へ</a>
+      {% else %}<span class="tag-warn">描画未開始</span>{% endif %}
+    </li>
+    {% else %}
+    <li>下書きはありません。<a href="{{ url_for('artworks.show_drawing_setup') }}">描き始める</a></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>作品のお気に入り</h2>
+  <ul>
+    {% for artwork in artwork_favorites %}
+    <li>
+      {{ artwork.title or '（無題）' }}（{{ artwork.artist.disp_name }}）
+      <form method="post" action="{{ url_for('favorites.remove_artwork_favorite', artwork_id=artwork.id) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="link">解除</button>
+      </form>
+    </li>
+    {% else %}
+    <li>作品のお気に入りはありません。</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>オークションのお気に入り</h2>
+  <ul>
+    {% for auction in auction_favorites %}
+    <li>
+      <a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+        {{ auction.artwork.title or '（無題）' }}
+      </a>
+      — {{ auction.current_price }}pt（{{ auction.status }}）
+      <form method="post" action="{{ url_for('favorites.remove_auction_favorite', auction_id=auction.id) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="link">解除</button>
+      </form>
+    </li>
+    {% else %}
+    <li>オークションのお気に入りはありません。</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>自分の作品</h2>
+  <ul>
+    {% for artwork in artworks %}
+    <li>#{{ artwork.id }} {{ artwork.title or '（無題）' }} — 状態: {{ artwork.status }}</li>
+    {% else %}
+    <li>まだ作品がありません。</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>ポイント取引履歴</h2>
+  <table class="table">
+    <tr><th>日時 (JST)</th><th>種別</th><th>増減</th><th>残高</th></tr>
+    {% for tx in transactions %}
+    <tr>
+      <td>{{ tx.created_at|jst }}</td>
+      <td>{{ tx.transaction_type }}</td>
+      <td>{{ '%+d'|format(tx.amount) }}</td>
+      <td>{{ tx.balance_after }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">履歴はありません。</td></tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('points.show_bonus_points') }}">ボーナスポイント画面</a> / <a href="{{ url_for('points.show_charge') }}">チャージ画面</a></p>
+</section>
+{% endblock %}

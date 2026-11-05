@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 絵を描く{% endblock %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1>絵を描く</h1>
+    <p class="muted">
+      描画時間を選んでください。開始後は変更できません。
+      時間が切れると自動で保存されます（保存の猶予は 60 秒間です）。
+    </p>
+    <form method="post" action="{{ url_for('artworks.start_drawing') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-field">
+        <label for="duration_seconds">制限時間</label>
+        <select id="duration_seconds" name="duration_seconds" required>
+          {% for seconds in durations %}
+            <option value="{{ seconds }}">
+              {% if seconds < 60 %}{{ seconds }}秒{% else %}{{ seconds // 60 }}分{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">描画を始める</button>
+    </form>
+  </section>
+{% endblock %}

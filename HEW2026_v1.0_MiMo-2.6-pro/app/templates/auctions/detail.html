@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ artwork.title }}{% endblock %}
+{% block content %}
+<h1>{{ artwork.title }}</h1>
+<div class="card">
+  <div class="row" style="align-items:flex-start;">
+    <img src="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}"
+         alt="{{ artwork.title }}"
+         style="max-width:360px;width:100%;border-radius:12px;border:1px solid var(--line);">
+    <div style="flex:1 1 300px;">
+      <p>
+        {% if auction.status == 'active' %}
+          <span class="badge">開催中</span>
+        {% elif auction.status == 'ended' %}
+          <span class="badge ended">終了</span>
+        {% else %}
+          <span class="badge ended">キャンセル</span>
+        {% endif %}
+        {% if auction.status == 'ended' and auction.winner_id %}
+          <span class="badge sold">落札済み</span>
+        {% endif %}
+      </p>
+      <p>{{ artwork.description or '（説明なし）' }}</p>
+      <p>出品者：{{ artwork.artist.disp_name }}</p>
+      <p>開始価格：{{ auction.start_price }}pt</p>
+      <p>
+        現在価格：<strong style="font-size:22px;">{{ auction.current_price }}pt</strong>
+      </p>
+      <p>開始：{{ auction.start_time.strftime('%Y-%m-%d %H:%M') }}（UTC）</p>
+      <p>終了：{{ auction.end_time.strftime('%Y-%m-%d %H:%M') }}（UTC）</p>
+      {% if auction.status == 'ended' %}
+        {% if auction.winner_id %}
+          <p>落札者：{{ auction.winner.disp_name }}（{{ auction.final_price }}pt）</p>
+        {% else %}
+          <p>入札がなく未落札で終了しました。</p>
+        {% endif %}
+      {% endif %}
+
+      {% if current_user.is_authenticated %}
+      <div class="row">
+        <form class="inline" method="post"
+              action="{{ url_for('favorites.add_artwork_favorite', artwork_id=artwork.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="secondary" type="submit">作品をお気に入り</button>
+        </form>
+        <form class="inline" method="post"
+              action="{{ url_for('favorites.add_auction_favorite', auction_id=auction.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="secondary" type="submit">オークションをお気に入り</button>
+        </form>
+        {% if artwork.artist_id == current_user.id or (auction.winner_id == current_user.id and auction.winner_bid_id) %}
+          <a class="button secondary"
+             href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, asset='png') }}">原寸PNG</a>
+          <a class="button secondary"
+             href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, asset='layers') }}">レイヤーZIP</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if auction.status == 'active' %}
+<div class="card">
+  <h2>入札</h2>
+  {% if not current_user.is_authenticated %}
+    <p class="muted"><a href="{{ url_for('auth.login') }}">ログイン</a>すると入札できます。</p>
+  {% elif artwork.artist_id == current_user.id %}
+    <p class="muted">自分の作品には入札できません。</p>
+  {% else %}
+    <p class="muted">
+      現在価格 +1pt 以上で入札してください。ポイント残高：{{ current_user.point_balance }}pt
+    </p>
+    <form class="stack" method="post" action="{{ url_for('auctions.submit_bid', auction_id=auction.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="confirmed_price" value="{{ auction.current_price }}">
+      <label>入札額（pt）
+        <input type="number" name="amount" min="{{ auction.current_price + 1 }}" step="1"
+               value="{{ auction.current_price + 1 }}" required>
+      </label>
+      <button type="submit">この額で入札する</button>
+    </form>
+    <p class="muted">
+      確認後に価格が変動した場合は受理されません。最新価格を確認して再度お試しください。
+      自動延長はありません。
+    </p>
+
+    <h3>自動入札</h3>
+    {% if my_setting and my_setting.is_active %}
+      <p>上限額：{{ my_setting.max_amount }}pt（有効）</p>
+      <form class="stack" method="post" action="{{ url_for('auctions.stop_auto_bid', auction_id=auction.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="danger" type="submit">自動入札を停止</button>
+      </form>
+    {% endif %}
+    <form class="stack" method="post" action="{{ url_for('auctions.set_auto_bid', auction_id=auction.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>上限額（pt）
+        <input type="number" name="max_amount" min="0" step="1"
+               value="{{ my_setting.max_amount if my_setting else auction.current_price + 10 }}" required>
+      </label>
+      <button class="secondary" type="submit">
+        {% if my_setting and my_setting.is_active %}上限額を変更{% else %}自動入札を設定{% endif %}
+      </button>
+    </form>
+    <p class="muted">
+      上限額の範囲で必要な額だけ自動的に入札します。上限全額は確保せず、
+      実際の入札額だけ消費します。残高不足になると自動入札は停止し、通知します。
+    </p>
+  {% endif %}
+</div>
+{% else %}
+<div class="card">
+  <h2>結果</h2>
+  <p>このオークションは終了・結果確定待ちです。入札受付は終了しています。</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>入札履歴</h2>
+  {% if bids %}
+  <table class="plain">
+    <tr><th>入札額</th><th>入札者</th><th>種別</th><th>日時（UTC）</th></tr>
+    {% for bid in bids %}
+    <tr>
+      <td>{{ bid.bid_amount }}pt</td>
+      <td>{{ bid.bidder.disp_name }}</td>
+      <td>{% if bid.is_auto_bid %}自動{% else %}手動{% endif %}</td>
+      <td>{{ bid.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">まだ入札はありません。</p>
+  {% endif %}
+</div>
+{% endblock %}

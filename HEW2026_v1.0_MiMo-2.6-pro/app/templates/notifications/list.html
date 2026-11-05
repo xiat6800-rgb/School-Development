@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}通知{% endblock %}
+{% block content %}
+<h1>通知</h1>
+<div class="card">
+  {% if notifications %}
+  <table class="plain">
+    <tr><th>内容</th><th>日時（UTC）</th><th>状態</th><th></th></tr>
+    {% for n in notifications %}
+    <tr>
+      <td>
+        <strong>{{ n.title }}</strong><br>
+        {{ n.message }}
+      </td>
+      <td>{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{% if n.is_read %}既読{% else %}<span class="badge">未読</span>{% endif %}</td>
+      <td>
+        {% if n.related_auction_id %}
+          <a href="{{ url_for('auctions.show_auction_detail', auction_id=n.related_auction_id) }}">競売へ</a>
+        {% endif %}
+        {% if not n.is_read %}
+        <form class="inline" method="post"
+              action="{{ url_for('notifications.mark_notification_read', notification_id=n.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="secondary" type="submit">既読</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">通知はありません。</p>
+  {% endif %}
+</div>
+{% endblock %}

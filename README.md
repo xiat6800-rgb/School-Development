@@ -11,6 +11,7 @@ HEW2026 チームプロジェクトの共有リポジトリ。複数の AI ツ�
 | `HEW2026_v1.0_Chatbox_DeepSeek4.1Flash/` | Chatbox + DeepSeek 4.1 Flash 実装（v1.0、CI 対象） |
 | `HEW2026_v1.0_Chatbox_KimiK3.1Pro/` | Chatbox + Kimi K3.1 Pro 実装（v1.0） |
 | `HEW2026_v1.0_TraeWorkCN_Deepseek/` | TraeWork CN + DeepSeek 実装（v1.0） |
+| `HEW2026_v1.0_MiniMaxCode_MiniMaxM3.1Flash/` | MiniMax Code + MiniMax M3.1 Flash 実装（v1.0、Ver0.5 範囲） |
 | `hew2026-workflow-workshop/` | GitHub Actions の学習用サンプル |
 | `系统组成.txt` / `执行错误/` | 構成メモとエラーメモ |
 

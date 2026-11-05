@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}ホーム{% endblock %}
+{% block content %}
+<h1>公開中の作品</h1>
+<p class="muted">
+  タグで作品を検索するには<a href="{{ url_for('search.search_artworks') }}">検索ページ</a>へ。
+</p>
+{% if artworks %}
+<div class="grid">
+  {% for artwork in artworks %}
+  <div class="artwork-card">
+    <a href="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}">
+      <img src="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}"
+           alt="{{ artwork.title }}">
+    </a>
+    <div class="meta">
+      <p class="title">{{ artwork.title }}</p>
+      {% set open_auction = artwork.auctions | selectattr("status", "equalto", "active") | first %}
+      {% if open_auction %}
+        <p class="sub">
+          現在価格 {{ open_auction.current_price }}pt
+          <a href="{{ url_for('auctions.show_auction_detail', auction_id=open_auction.id) }}">詳細</a>
+        </p>
+      {% else %}
+        {% set last_auction = artwork.auctions | sort(attribute="id") | last %}
+        {% if last_auction %}
+        <p class="sub">
+          <span class="badge ended">終了</span>
+          <a href="{{ url_for('auctions.show_auction_detail', auction_id=last_auction.id) }}">詳細</a>
+        </p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p>まだ公開作品がありません。</p>
+{% endif %}
+{% endblock %}

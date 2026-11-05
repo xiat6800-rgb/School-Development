@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · チャージ{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>チャージ</h1>
+    <p class="flash flash-info">
+      Ver0.5 では課金機能（Stripe 連携・決済）を提供していません。
+      ポイントは登録ボーナスや描画ボーナスで入手してください。
+    </p>
+    <p class="point-balance">現在の残高：{{ balance }}pt</p>
+    <p>
+      <a class="btn btn-secondary" href="{{ url_for('points.show_payment') }}">支払い画面へ</a>
+      <a class="btn" href="{{ url_for('points.show_bonus_points') }}">ボーナスポイントを確認</a>
+    </p>
+  </section>
+{% endblock %}

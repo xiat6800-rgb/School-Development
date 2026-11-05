@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}アカウント{% endblock %}
+{% block content %}
+<h1>アカウント</h1>
+
+<div class="card">
+  <h2>プロフィール</h2>
+  <p>ユーザー名：<strong>{{ current_user.username }}</strong></p>
+  <form class="stack" method="post" action="{{ url_for('auth.update_display_name') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>表示名
+      <input type="text" name="disp_name" value="{{ current_user.disp_name }}" maxlength="50" required>
+    </label>
+    <button type="submit">表示名を更新</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>復旧コードの再発行</h2>
+  <p class="muted">現在のパスワードを確認して再発行します。旧コードは無効化されます。</p>
+  <form class="stack" method="post" action="{{ url_for('auth.regenerate_recovery_code') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>現在のパスワード
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">復旧コードを再発行</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>下書き一覧</h2>
+  {% if drafts %}
+  <table class="plain">
+    <tr><th>タイトル</th><th>描画時間</th><th>保存状態</th><th></th></tr>
+    {% for draft in drafts %}
+    <tr>
+      <td>{{ draft.title }}</td>
+      <td>{% if draft.duration_seconds %}{{ draft.duration_seconds }}秒{% endif %}</td>
+      <td>
+        {% if draft.is_formally_saved %}
+          <span class="badge sold">正式保存済み</span>
+        {% else %}
+          <span class="badge">未保存</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if draft.is_formally_saved %}
+          <a href="{{ url_for('artworks.listing_form', artwork_id=draft.id) }}">出品設定</a>
+        {% else %}
+          <a href="{{ url_for('artworks.show_canvas', artwork_id=draft.id) }}">描画へ</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">下書きはまだありません。</p>
+  {% endif %}
+  <p><a class="button" href="{{ url_for('artworks.show_drawing_setup') }}">新しい絵を描く</a></p>
+</div>
+
+<div class="card">
+  <h2>自分の作品・出品状況</h2>
+  {% if artworks %}
+  <table class="plain">
+    <tr><th>タイトル</th><th>状態</th><th></th></tr>
+    {% for artwork in artworks %}
+    <tr>
+      <td>{{ artwork.title }}</td>
+      <td>
+        {% if artwork.status == 'draft' %}<span class="badge">下書き</span>
+        {% elif artwork.status == 'listed' %}<span class="badge">出品中</span>
+        {% elif artwork.status == 'sold' %}<span class="badge sold">落札済み</span>
+        {% else %}<span class="badge ended">{{ artwork.status }}</span>{% endif %}
+      </td>
+      <td>
+        {% for auction in artwork.auctions %}
+          <a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">オークション</a>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">作品はまだありません。</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>お気に入り</h2>
+  <div class="row">
+    <a class="button secondary" href="{{ url_for('favorites.list_artwork_favorites') }}">作品のお気に入り</a>
+    <a class="button secondary" href="{{ url_for('favorites.list_auction_favorites') }}">オークションのお気に入り</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>ポイント</h2>
+  <p>残高：<strong>{{ current_user.point_balance }}pt</strong></p>
+  <div class="row">
+    <a class="button secondary" href="{{ url_for('points.show_bonus_points') }}">ボーナス・履歴</a>
+    <a class="button secondary" href="{{ url_for('points.show_charge') }}">チャージ</a>
+  </div>
+</div>
+{% endblock %}

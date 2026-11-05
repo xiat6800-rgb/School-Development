@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}HEW オークション{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="{{ url_for('main.show_top') }}">HEW</a>
+  <nav>
+    <a href="{{ url_for('search.search_artworks') }}">検索</a>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('artworks.show_drawing_setup') }}">描く</a>
+      <a href="{{ url_for('notifications.show_notifications') }}">
+        通知{% if unread_notifications %}<span class="badge">{{ unread_notifications }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('points.show_bonus_points') }}">ポイント: {{ current_user.point_balance }}pt</a>
+      <a href="{{ url_for('auth.show_account') }}">{{ current_user.disp_name }}</a>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="link">ログアウト</button>
+      </form>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">ログイン</a>
+      <a href="{{ url_for('auth.register') }}">新規登録</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <small>HEW2026 チームプロジェクト / Ver0.5 実装（Qoder 中）</small>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

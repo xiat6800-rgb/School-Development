@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}ボーナスポイント{% endblock %}
+{% block content %}
+<h1>ボーナスポイント</h1>
+<div class="card">
+  <h2>付与条件</h2>
+  <p class="muted">条件を満たすと自動で付与されます。受け取り操作はありません。</p>
+  <table class="plain">
+    <tr><th>契機</th><th>付与量</th><th>条件・回数</th></tr>
+    <tr><td>登録成功</td><td>1,000pt</td><td>1アカウント1回</td></tr>
+    <tr><td>初出品成功</td><td>300pt</td><td>1アカウント1回</td></tr>
+    <tr><td>描画の正式保存成功</td><td>100pt</td><td>日本時間の暦日で1日1回</td></tr>
+  </table>
+  <p class="muted">現在の残高：{{ current_user.point_balance }}pt</p>
+</div>
+
+<div class="card">
+  <h2>獲得履歴</h2>
+  {% if grants %}
+  <table class="plain">
+    <tr><th>種別</th><th>量</th><th>日時（UTC）</th></tr>
+    {% for grant in grants %}
+    <tr>
+      <td>
+        {% if grant.bonus_type == 'register' %}登録
+        {% elif grant.bonus_type == 'first_listing' %}初出品
+        {% elif grant.bonus_type == 'drawing_save' %}描画保存（{{ grant.period_key }}）
+        {% else %}{{ grant.bonus_type }}{% endif %}
+      </td>
+      <td>+{{ grant.amount }}pt</td>
+      <td>{{ grant.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">まだボーナスの獲得はありません。</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>ポイント取引履歴</h2>
+  {% if transactions %}
+  <table class="plain">
+    <tr><th>種別</th><th>増減</th><th>残高</th><th>日時（UTC）</th></tr>
+    {% for txn in transactions %}
+    <tr>
+      <td>
+        {% if txn.transaction_type == 'bonus' %}ボーナス
+        {% elif txn.transaction_type == 'bid' %}入札
+        {% elif txn.transaction_type == 'refund' %}返還
+        {% elif txn.transaction_type == 'sale' %}落札代金
+        {% else %}{{ txn.transaction_type }}{% endif %}
+      </td>
+      <td>{{ '%+d' % txn.amount }}pt</td>
+      <td>{{ txn.balance_after }}pt</td>
+      <td>{{ txn.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">取引履歴はありません。</p>
+  {% endif %}
+</div>
+<p><a class="button secondary" href="{{ url_for('points.show_charge') }}">チャージ画面へ</a></p>
+{% endblock %}

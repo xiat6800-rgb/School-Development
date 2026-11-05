@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}ログイン - HEW{% endblock %}
+{% block content %}
+<h1>ログイン</h1>
+<form method="post" class="form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>ユーザー名
+    <input type="text" name="username" maxlength="20" required autofocus>
+  </label>
+  <label>パスワード
+    <input type="password" name="password" required>
+  </label>
+  <button type="submit">ログイン</button>
+</form>
+<p><a href="{{ url_for('auth.register') }}">新規登録はこちら</a> / <a href="{{ url_for('auth.reset_password') }}">パスワードを忘れた方</a></p>
+{% endblock %}

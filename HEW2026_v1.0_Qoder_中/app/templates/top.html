@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>公開作品</h1>
+<section class="grid">
+  {% for artwork in artworks %}
+  <a class="card" href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auctions[-1].id) if artwork.auctions else '#' }}">
+    <img src="{{ url_for('artworks.show_public_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}" loading="lazy">
+    <div class="card-body">
+      <strong>{{ artwork.title }}</strong>
+      <span>{{ artwork.artist.disp_name }}</span>
+      {% if artwork.status == 'sold' %}<span class="tag-sold">落札済み</span>{% endif %}
+    </div>
+  </a>
+  {% else %}
+  <p>まだ公開作品がありません。{% if current_user.is_authenticated %}<a href="{{ url_for('artworks.show_drawing_setup') }}">最初の絵を描きましょう</a>。{% endif %}</p>
+  {% endfor %}
+</section>
+
+<h2>開催中のオークション</h2>
+<ul class="auction-list">
+  {% for auction in auctions %}
+  <li>
+    <a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+      {{ auction.artwork.title or '（無題）' }}
+    </a>
+    — 現在価格 {{ auction.current_price }}pt / 終了 {{ auction.end_time|jst }} (JST)
+  </li>
+  {% else %}
+  <li>開催中のオークションはありません。</li>
+  {% endfor %}
+</ul>
+{% endblock %}

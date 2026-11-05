@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · サーバーエラー{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>500</h1>
+    <p class="flash flash-error">サーバー内部でエラーが発生しました。時間をおいて再度お試しください。</p>
+    <p><a class="btn btn-primary" href="{{ url_for('main.home') }}">ホームへ戻る</a></p>
+  </section>
+{% endblock %}

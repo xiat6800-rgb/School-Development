@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}作品のお気に入り{% endblock %}
+{% block content %}
+<h1>作品のお気に入り</h1>
+<p class="muted">
+  <a href="{{ url_for('favorites.list_auction_favorites') }}">オークションのお気に入り</a> /
+  <a href="{{ url_for('auth.show_account') }}">アカウントへ戻る</a>
+</p>
+{% if favorites %}
+<table class="plain">
+  <tr><th>作品</th><th>登録日時（UTC）</th><th></th></tr>
+  {% for fav in favorites %}
+  <tr>
+    <td>
+      {% for auction in fav.artwork.auctions %}
+        <a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">{{ fav.artwork.title }}</a>
+      {% else %}
+        {{ fav.artwork.title }}
+      {% endfor %}
+    </td>
+    <td>{{ fav.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    <td>
+      <form class="inline" method="post"
+            action="{{ url_for('favorites.remove_artwork_favorite', artwork_id=fav.artwork_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="secondary" type="submit">解除</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>作品のお気に入りはまだありません。</p>
+{% endif %}
+{% endblock %}

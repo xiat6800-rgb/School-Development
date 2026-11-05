@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · ページが見つかりません{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>404</h1>
+    <p class="flash flash-error">ページが見つかりませんでした。</p>
+    <p><a class="btn btn-primary" href="{{ url_for('main.home') }}">ホームへ戻る</a></p>
+  </section>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · ボーナスポイント{% endblock %}
+
+{% block content %}
+  <h1>ボーナスポイント</h1>
+  <p class="muted">
+    ボーナスは条件達成時に自動で付与されます（受け取り操作は不要）。獲得したポイントは
+    入札にそのまま使えます。
+  </p>
+  <p class="point-balance">現在の残高：{{ balance }}pt</p>
+
+  <section class="card">
+    <h2>付与条件</h2>
+    <table class="table">
+      <tr><th>契機</th><th>付与量</th><th>回数・条件</th></tr>
+      <tr><td>ユーザー登録成功</td><td>{{ signup_points }}pt</td><td>1 アカウント 1 回</td></tr>
+      <tr><td>初出品成功</td><td>{{ first_listing_points }}pt</td><td>1 アカウント 1 回</td></tr>
+      <tr><td>描画の正式保存成功</td><td>{{ draw_points }}pt</td><td>日本時間 1 日 1 回</td></tr>
+    </table>
+    <p class="muted">
+      ※ 付与量と回数は仮データです。将来再検討する前提で保存しています。
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>獲得履歴</h2>
+    {% if grants %}
+      <table class="table">
+        <tr><th>日時(UTC)</th><th>種類</th><th>日付キー</th><th>金額</th></tr>
+        {% for grant in grants %}
+          <tr>
+            <td>{{ grant.created_at.strftime('%m/%d %H:%M') }}</td>
+            <td>{{ grant.bonus_type }}</td>
+            <td>{{ grant.bonus_date }}</td>
+            <td class="price">{{ grant.amount }}pt</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="empty">まだボーナスを受け取っていません。</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>最近の取引履歴</h2>
+    {% if transactions %}
+      <table class="table">
+        <tr><th>日時(UTC)</th><th>種別</th><th>増減</th><th>残高</th></tr>
+        {% for transaction in transactions %}
+          <tr>
+            <td>{{ transaction.created_at.strftime('%m/%d %H:%M') }}</td>
+            <td>{{ transaction.transaction_type }}</td>
+            <td class="price">{{ '+' if transaction.amount >= 0 else '' }}{{ transaction.amount }}pt</td>
+            <td>{{ transaction.balance_after }}pt</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="empty">取引履歴はありません。</p>
+    {% endif %}
+  </section>
+{% endblock %}

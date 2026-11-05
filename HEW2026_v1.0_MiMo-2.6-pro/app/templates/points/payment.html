@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}支払い{% endblock %}
+{% block content %}
+<h1>支払い</h1>
+<div class="card">
+  <p><strong>Ver0.5 では支払い機能は提供されていません。</strong></p>
+  <p class="muted">
+    この画面は将来の課金連携用の遷移先です。決済によるポイント加算は行いません。
+  </p>
+  <a class="button secondary" href="{{ url_for('points.show_charge') }}">チャージ画面へ戻る</a>
+</div>
+{% endblock %}

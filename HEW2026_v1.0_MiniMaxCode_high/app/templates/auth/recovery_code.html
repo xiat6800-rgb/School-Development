@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · 復旧コード{% endblock %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1>復旧コード</h1>
+    {% if is_first_time %}
+      <p class="flash flash-success">
+        登録が完了しました。以下の復旧コードを<b>今だけ</b>表示します。
+      </p>
+    {% else %}
+      <p class="flash flash-info">新しい復旧コードを発行しました。旧的コードは無効になりました。</p>
+    {% endif %}
+
+    <p class="price">{{ recovery_code }}</p>
+    <p class="muted">
+      ユーザー名とこのコードで
+      <a href="{{ url_for('auth.recover') }}">パスワードを再設定</a> できます。<br>
+      この画面を閉じると再表示できません。必ずメモなどへ控えてください。
+      パスワードと復旧コードの両方を失うとアカウントを復旧できません。
+    </p>
+    <p>
+      <a class="btn btn-primary" href="{{ url_for('account.show_account') }}">アカウントへ</a>
+    </p>
+  </section>
+{% endblock %}

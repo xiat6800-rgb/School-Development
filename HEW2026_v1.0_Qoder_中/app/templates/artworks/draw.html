@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}描画 - HEW{% endblock %}
+{% block content %}
+<h1>描画 <small>作品 #{{ artwork.id }}</small></h1>
+<div id="draw-ui"
+     data-artwork-id="{{ artwork.id }}"
+     data-deadline="{{ deadline_utc }}"
+     data-max-layers="{{ max_layers }}"
+     data-canvas-size="{{ canvas_size }}"
+     data-save-url="{{ url_for('artworks.save_draft', artwork_id=artwork.id) }}"
+     data-csrf="{{ csrf_token() }}"
+     data-draft-url="{{ url_for('artworks.show_draft', artwork_id=artwork.id) }}">
+  <div class="toolbar">
+    <label>色 <input type="color" id="pen-color" value="#111111"></label>
+    <label>太さ <input type="range" id="pen-size" min="1" max="60" value="6"></label>
+    <label>ペン
+      <select id="pen-type">
+        <option value="round">丸ペン</option>
+        <option value="square">Gペン風（角）</option>
+        <option value="eraser">消しゴム</option>
+      </select>
+    </label>
+    <button type="button" id="btn-undo" disabled>元に戻す</button>
+    <button type="button" id="btn-redo" disabled>やり直す</button>
+    <button type="button" id="btn-add-layer">レイヤー追加</button>
+    <button type="button" id="btn-del-layer">レイヤー削除</button>
+    <button type="button" id="btn-up-layer">↑</button>
+    <button type="button" id="btn-down-layer">↓</button>
+    <label>不透明度 <input type="range" id="layer-opacity" min="0" max="100" value="100"></label>
+    <label><input type="checkbox" id="layer-visible" checked> 表示</label>
+    <button type="button" id="btn-finish" class="primary">完成して保存</button>
+  </div>
+  <div class="draw-main">
+    <canvas id="draw-canvas" width="{{ canvas_size }}" height="{{ canvas_size }}"></canvas>
+    <aside>
+      <p>残り時間: <strong id="timer">--</strong></p>
+      <p id="save-status"></p>
+      <ol id="layer-list"></ol>
+      <button type="button" id="btn-local-save">端末に保存（出品不可）</button>
+      <p class="help">ペンを離した時点とレイヤー操作時にこのブラウザへ一時保存します。同じブラウザでのみ復元できます。</p>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+{% endblock %}

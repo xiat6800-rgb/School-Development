@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}タグ検索 - HEW{% endblock %}
+{% block content %}
+<h1>タグ検索</h1>
+<form method="get" class="form">
+  <fieldset>
+    <legend>タグ（複数選択は AND 条件）</legend>
+    {% for tag in tags %}
+    <label class="check">
+      <input type="checkbox" name="tag_ids" value="{{ tag.id }}" {% if tag.id in selected_ids %}checked{% endif %}>
+      {{ tag.name }}
+    </label>
+    {% else %}
+    <p>タグが未登録です。管理者は <code>flask seed-tags</code> で初期タグを登録してください。</p>
+    {% endfor %}
+  </fieldset>
+  <button type="submit">検索</button>
+</form>
+
+{% if searched %}
+<h2>検索結果（{{ artworks|length }}件）</h2>
+<section class="grid">
+  {% for artwork in artworks %}
+  <a class="card" href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auctions[-1].id) if artwork.auctions else '#' }}">
+    <img src="{{ url_for('artworks.show_public_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}" loading="lazy">
+    <div class="card-body">
+      <strong>{{ artwork.title }}</strong>
+      <span>{{ artwork.artist.disp_name }}</span>
+    </div>
+  </a>
+  {% else %}
+  <p>条件に一致する公開作品はありません。</p>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

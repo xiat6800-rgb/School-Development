@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · ホーム{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <h1>HEW2026</h1>
+    <p class="muted">
+      サイト上で描いた絵を、ポイントで競り合うオークションです。
+      絵を描く → 下書きを保存 → 出品する → 入札する の流れで利用します。
+    </p>
+    <p>
+      <a class="btn btn-primary" href="{{ url_for('artworks.show_drawing_setup') }}">絵を描く</a>
+      <a class="btn btn-secondary" href="{{ url_for('search.search_artworks') }}">タグで探す</a>
+    </p>
+  </section>
+
+  <h2>開催中のオークション</h2>
+  {% if auctions %}
+    <div class="card-grid">
+      {% for auction in auctions %}
+        <article class="card">
+          <h3>
+            <a href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">
+              {{ auction.artwork.title or '無題の作品' }}
+            </a>
+          </h3>
+          <p class="price">{{ auction.current_price }}pt</p>
+          <p class="muted">終了 {{ auction.end_time.strftime('%m/%d %H:%M') }} UTC</p>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">現在開催中のオークションはありません。</p>
+  {% endif %}
+
+  <h2>最新の作品</h2>
+  {% if artworks %}
+    <div class="card-grid">
+      {% for artwork in artworks %}
+        <article class="card">
+          <div class="card-image">
+            <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}"
+                 alt="{{ artwork.title or '作品' }}" loading="lazy">
+          </div>
+          <h3>{{ artwork.title or '無題の作品' }}</h3>
+          <p class="muted">
+            {% for tag in artwork.tags %}<span class="badge">#{{ tag.name }}</span>{% endfor %}
+          </p>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">公開中の作品はまだありません。</p>
+  {% endif %}
+
+  {% if tags %}
+    <h2>タグ一覧</h2>
+    <p>
+      {% for tag in tags %}
+        <a class="badge" href="{{ url_for('search.search_artworks', tag_ids=tag.id) }}">#{{ tag.name }}</a>
+      {% endfor %}
+    </p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}絵を描く{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;">
+  <h1>絵を描く</h1>
+  <p class="muted">
+    描画時間を選んで開始してください。開始後は変更できません。
+    時間はサーバーで管理され、再読み込みしても進みます。
+  </p>
+  <form class="stack" method="post" action="{{ url_for('artworks.start_drawing') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>制限時間</label>
+    <div class="row">
+      {% for value, label in duration_choices %}
+      <label class="inline">
+        <input type="radio" name="duration_seconds" value="{{ value }}"
+               {% if value == 30 %}checked{% endif %}> {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit">描画を開始</button>
+  </form>
+</div>
+{% endblock %}

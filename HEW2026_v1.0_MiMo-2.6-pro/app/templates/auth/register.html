@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}新規登録{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;">
+  <h1>新規登録</h1>
+  <p class="muted">
+    メールアドレスは使用しません。登録時に復旧コードを一度だけ表示します。
+    パスワードと復旧コードの両方を失った場合、復旧できません。
+  </p>
+  <form class="stack" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>ユーザー名（半角英数字20文字以内）
+      <input type="text" name="username" value="{{ username or '' }}" required>
+    </label>
+    <label>パスワード（8文字以上）
+      <input type="password" name="password" required>
+    </label>
+    <label>パスワード（確認）
+      <input type="password" name="password_confirm" required>
+    </label>
+    <button type="submit">登録する</button>
+  </form>
+</div>
+{% endblock %}

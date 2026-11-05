@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}ボーナスポイント - HEW{% endblock %}
+{% block content %}
+<h1>ボーナスポイント</h1>
+<p>残高: <strong>{{ balance }}pt</strong>。ボーナスは条件達成時に<strong>自動付与</strong>されます（受け取り操作は不要）。</p>
+<h2>付与条件（仮データ・将来再検討）</h2>
+<table class="table">
+  <tr><th>契機</th><th>付与量</th><th>回数制限</th></tr>
+  <tr><td>ユーザー登録成功</td><td>{{ signup }}pt</td><td>1アカウント1回</td></tr>
+  <tr><td>初出品成功</td><td>{{ first_listing }}pt</td><td>1アカウント1回</td></tr>
+  <tr><td>PNGとレイヤーZIPの正式保存成功</td><td>{{ draw_save }}pt</td><td>日本時間で1日1回</td></tr>
+</table>
+<h2>獲得履歴</h2>
+<table class="table">
+  <tr><th>日時 (JST)</th><th>種別</th><th>金額</th></tr>
+  {% for grant in grants %}
+  <tr><td>{{ grant.created_at|jst }}</td><td>{{ grant.bonus_type }}</td><td>+{{ grant.amount }}pt</td></tr>
+  {% else %}
+  <tr><td colspan="3">獲得履歴はありません。</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

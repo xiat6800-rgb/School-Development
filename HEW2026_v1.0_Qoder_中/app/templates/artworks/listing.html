@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}出品設定 - HEW{% endblock %}
+{% block content %}
+<h1>出品設定 <small>作品 #{{ artwork.id }}</small></h1>
+<img class="preview" src="{{ url_for('artworks.show_public_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+<div class="notice">
+  <p>出品すると作品が公開され、オークションが<strong>即時に開始</strong>されます。Ver0.5 では出品の取消はできません。</p>
+  <p>落札者には<strong>非表示レイヤーを含む全レイヤーZIP</strong>と原寸PNGが渡されます（編集履歴は含みません）。</p>
+</div>
+<form method="post" class="form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>タイトル（必須・200文字以内）
+    <input type="text" name="title" maxlength="200" value="{{ artwork.title }}" required>
+  </label>
+  <label>説明
+    <textarea name="description" rows="4">{{ artwork.description or '' }}</textarea>
+  </label>
+  <fieldset>
+    <legend>タグ（既存タグから複数選択・AND検索に使われます）</legend>
+    {% for tag in tags %}
+    <label class="check">
+      <input type="checkbox" name="tag_ids" value="{{ tag.id }}"> {{ tag.name }}
+    </label>
+    {% endfor %}
+  </fieldset>
+  <label>開始価格（0以上の整数pt。最低落札価格は使いません）
+    <input type="number" name="start_price" min="0" step="1" value="100" required>
+  </label>
+  <fieldset>
+    <legend>開催時間（出品確定から即時開始）</legend>
+    {% for m in minutes %}
+    <label class="radio">
+      <input type="radio" name="duration_minutes" value="{{ m }}" {% if m == default_minutes %}checked{% endif %}>
+      {{ m }}分
+    </label>
+    {% endfor %}
+  </fieldset>
+  <button type="submit" class="primary">出品する</button>
+</form>
+{% endblock %}

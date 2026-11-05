@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}下書き管理 - HEW{% endblock %}
+{% block content %}
+<h1>下書き #{{ artwork.id }}</h1>
+{% if artwork.image_path %}
+  <img class="preview" src="{{ url_for('artworks.show_public_image', artwork_id=artwork.id) }}" alt="下書き画像">
+  <p class="tag-ok">正式保存済み（{{ artwork.drawing_saved_at|jst }} JST）— 以降の加筆・差し替えはできません。</p>
+  <p>
+    <a href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='png') }}">原寸PNG</a> /
+    <a href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, kind='zip') }}">全レイヤーZIP</a>
+  </p>
+  <p><a class="button" href="{{ url_for('artworks.show_listing_form', artwork_id=artwork.id) }}">出品設定へ進む</a></p>
+{% else %}
+  <p class="tag-warn">まだ正式保存されていません。</p>
+  {% if artwork.drawing_started_at %}
+    <p><a class="button" href="{{ url_for('artworks.show_canvas', artwork_id=artwork.id) }}">描画画面へ（期限: {{ artwork.drawing_deadline|jst }} JST）</a></p>
+  {% endif %}
+{% endif %}
+<p><a href="{{ url_for('auth.show_account') }}">アカウント画面へ戻る</a></p>
+{% endblock %}

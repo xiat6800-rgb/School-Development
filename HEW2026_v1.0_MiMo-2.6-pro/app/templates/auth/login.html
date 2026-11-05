@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}ログイン{% endblock %}
+{% block content %}
+<div class="card" style="max-width:420px;">
+  <h1>ログイン</h1>
+  <form class="stack" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>ユーザー名
+      <input type="text" name="username" value="{{ username or '' }}" required>
+    </label>
+    <label>パスワード
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">ログイン</button>
+  </form>
+  <p class="muted">
+    <a href="{{ url_for('auth.register') }}">新規登録</a> /
+    <a href="{{ url_for('auth.reset_password') }}">パスワードを再設定</a>
+  </p>
+</div>
+{% endblock %}

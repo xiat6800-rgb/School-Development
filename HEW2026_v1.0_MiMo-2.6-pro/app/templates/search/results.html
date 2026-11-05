@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}検索{% endblock %}
+{% block content %}
+<h1>タグ検索</h1>
+<div class="card">
+  <form method="get">
+    <p class="muted">複数のタグを選ぶと、すべてのタグに一致する作品だけを表示します（AND条件）。</p>
+    <div class="row">
+      {% for tag in tags %}
+      <label class="inline">
+        <input type="checkbox" name="tag_ids" value="{{ tag.id }}"
+               {% if tag.id in selected_tag_ids %}checked{% endif %}> {{ tag.name }}
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit" style="margin-top:12px;">検索</button>
+  </form>
+</div>
+
+{% if artworks %}
+<div class="grid">
+  {% for artwork in artworks %}
+  <div class="artwork-card">
+    <a href="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}">
+      <img src="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}" alt="{{ artwork.title }}">
+    </a>
+    <div class="meta">
+      <p class="title">{{ artwork.title }}</p>
+      {% set open_auction = artwork.auctions | selectattr("status", "equalto", "active") | first %}
+      {% if open_auction %}
+      <p class="sub">
+        現在価格 {{ open_auction.current_price }}pt
+        <a href="{{ url_for('auctions.show_auction_detail', auction_id=open_auction.id) }}">詳細</a>
+      </p>
+      {% else %}
+        {% set last_auction = artwork.auctions | sort(attribute="id") | last %}
+        {% if last_auction %}
+        <p class="sub">
+          <span class="badge ended">終了</span>
+          <a href="{{ url_for('auctions.show_auction_detail', auction_id=last_auction.id) }}">詳細</a>
+        </p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p>条件に一致する作品がありません。</p>
+{% endif %}
+{% endblock %}

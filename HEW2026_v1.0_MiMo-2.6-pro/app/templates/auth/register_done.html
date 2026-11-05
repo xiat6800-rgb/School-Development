@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}登録完了{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;">
+  <h1>登録が完了しました</h1>
+  <p>以下の復旧コードを控えてください。<strong>この画面は一度しか表示されません。</strong></p>
+  <p class="recovery-code">{{ recovery_code }}</p>
+  <p class="muted">
+    パスワードを忘れた場合は、ユーザー名とこの復旧コードで再設定できます。
+    使用したコードは無効化されます。パスワードと復旧コードの両方を失った場合、
+    アカウントは復旧できません。
+  </p>
+  <a class="button" href="{{ url_for('auth.login') }}">ログインへ</a>
+</div>
+<style>.recovery-code{
+  font-family: monospace; font-size: 28px; letter-spacing: 0.12em;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 14px 18px; border-radius: 10px; text-align: center;
+}</style>
+{% endblock %}

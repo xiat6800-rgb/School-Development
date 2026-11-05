@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}描画{% endblock %}
+{% block content %}
+<div class="canvas-layout">
+  <div class="canvas-main">
+    <div class="row" style="justify-content:space-between;">
+      <h1 style="margin:0;">描画</h1>
+      <div class="timer" id="timer">--:--</div>
+    </div>
+    <p class="muted">
+      キャンバスは1,024×1,024px固定です。表示のみ縮小します。
+      ペンを離した時点とレイヤー操作完了時にブラウザへ一時保存します。
+    </p>
+    <div class="canvas-frame">
+      <canvas id="paint" width="{{ canvas_size }}" height="{{ canvas_size }}"></canvas>
+    </div>
+    <div class="row">
+      <button id="btn-undo" class="secondary" type="button">元に戻す</button>
+      <button id="btn-redo" class="secondary" type="button">やり直す</button>
+      <button id="btn-finish" type="button">完成して保存</button>
+      <span class="muted" id="save-status"></span>
+    </div>
+    <p class="muted">
+      描画期限後は加筆できません。固定後{{ save_grace }}秒間は保存の再試行だけ可能です。
+      期限を過ぎても保存できない作品は出品できません。
+    </p>
+  </div>
+
+  <aside class="canvas-side">
+    <div class="card">
+      <h3>ペン</h3>
+      <label>種類
+        <select id="pen-type">
+          <option value="gpen">Gペン</option>
+          <option value="round">丸ペン</option>
+          <option value="air">ぼかし</option>
+          <option value="eraser">消しゴム</option>
+        </select>
+      </label>
+      <label>色 <input type="color" id="pen-color" value="#22252a"></label>
+      <label>太さ <input type="range" id="pen-size" min="1" max="100" value="12"></label>
+    </div>
+    <div class="card">
+      <h3>レイヤー（最大{{ max_layers }}）</h3>
+      <ul class="layer-list" id="layer-list"></ul>
+      <div class="row">
+        <button class="secondary" type="button" id="btn-layer-add">追加</button>
+        <button class="secondary" type="button" id="btn-layer-delete">削除</button>
+        <button class="secondary" type="button" id="btn-layer-up">上へ</button>
+        <button class="secondary" type="button" id="btn-layer-down">下へ</button>
+      </div>
+      <label>不透明度
+        <input type="range" id="layer-opacity" min="0" max="100" value="100">
+      </label>
+      <label class="inline">
+        <input type="checkbox" id="layer-visible" checked> 表示
+      </label>
+    </div>
+    <div class="card">
+      <h3>履歴</h3>
+      <p class="muted">直近{{ max_undo }}操作まで元に戻せます。</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+  window.HEW_CONFIG = {
+    artworkId: {{ artwork.id }},
+    deadline: {{ deadline_iso | tojson }},
+    canvasSize: {{ canvas_size }},
+    maxLayers: {{ max_layers }},
+    maxUndo: {{ max_undo }},
+    saveGrace: {{ save_grace }},
+    saveUrl: {{ url_for('artworks.save_draft', artwork_id=artwork.id) | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+<style>
+.canvas-layout { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.canvas-main { flex: 1 1 520px; }
+.canvas-side { flex: 0 0 280px; }
+.canvas-frame {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px; margin: 12px 0;
+}
+#paint {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--line); border-radius: 6px;
+  touch-action: none; cursor: crosshair;
+}
+.timer {
+  font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 4px 14px; border-radius: 10px; background: var(--accent-soft);
+  color: var(--accent);
+}
+.timer.urgent { background: #fbe9e6; color: var(--danger); }
+.layer-list { list-style: none; padding: 0; margin: 0 0 10px; }
+.layer-list li {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; font-size: 13px;
+}
+.layer-list li.active { border-color: var(--accent); background: var(--accent-soft); }
+</style>
+{% endblock %}

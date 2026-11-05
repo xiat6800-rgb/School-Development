@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}チャージ - HEW{% endblock %}
+{% block content %}
+<h1>ポイントチャージ</h1>
+<div class="notice">
+  <p><strong>Ver0.5 では課金機能を提供していません。</strong></p>
+  <p>Stripe 連携・テスト決済・実課金・決済によるポイント加算はすべて将来機能です。この画面は遷移先として用意されたものです。</p>
+</div>
+<p>現在の残高: <strong>{{ balance }}pt</strong></p>
+<p>ポイントは登録ボーナス・初出品ボーナス・描画正式保存ボーナスと、落札代金（出品時）で獲得できます。
+  <a href="{{ url_for('points.show_bonus_points') }}">ボーナスポイント画面</a>を確認してください。</p>
+<p><a href="{{ url_for('points.show_payment') }}">支払い画面（準備中）</a></p>
+{% endblock %}

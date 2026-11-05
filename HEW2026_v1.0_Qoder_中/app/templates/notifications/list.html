@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}通知 - HEW{% endblock %}
+{% block content %}
+<h1>通知</h1>
+{% if notifications %}
+<form method="post" action="{{ url_for('notifications.mark_all_read') }}" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit">すべて既読にする</button>
+</form>
+{% endif %}
+<ul class="notifications">
+  {% for n in notifications %}
+  <li class="{{ 'unread' if not n.is_read }}">
+    <strong>{{ n.title }}</strong>
+    <span class="help">{{ n.created_at|jst }} (JST)</span>
+    <p>{{ n.message }}</p>
+    {% if n.related_auction_id %}
+    <form method="post" action="{{ url_for('notifications.mark_notification_read', notification_id=n.id) }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link">商品詳細へ</button>
+    </form>
+    {% elif not n.is_read %}
+    <form method="post" action="{{ url_for('notifications.mark_notification_read', notification_id=n.id) }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link">既読にする</button>
+    </form>
+    {% endif %}
+  </li>
+  {% else %}
+  <li>通知はありません。</li>
+  {% endfor %}
+</ul>
+{% endblock %}

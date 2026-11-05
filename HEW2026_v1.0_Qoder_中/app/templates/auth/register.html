@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}新規登録 - HEW{% endblock %}
+{% block content %}
+<h1>新規登録</h1>
+<div class="notice">
+  <p><strong>重要:</strong> メールアドレスは使用しません。登録後に表示される<strong>復旧コード</strong>を必ず控えてください。</p>
+  <p>パスワードと復旧コードの<strong>両方を失った場合は復旧できません</strong>。</p>
+</div>
+<form method="post" class="form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>ユーザー名（一意・20文字以内）
+    <input type="text" name="username" maxlength="20" required autofocus>
+  </label>
+  <label>パスワード（4文字以上）
+    <input type="password" name="password" minlength="4" required>
+  </label>
+  <button type="submit">登録する</button>
+</form>
+<p>登録成功時にボーナス 1,000pt を付与します（仮データ）。</p>
+{% endblock %}

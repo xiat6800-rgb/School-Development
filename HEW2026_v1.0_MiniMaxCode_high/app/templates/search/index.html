@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}HEW2026 · タグ検索{% endblock %}
+
+{% block content %}
+  <h1>タグ検索</h1>
+  <p class="muted">複数のタグを選ぶと、選んだすべてのタグを持つ作品だけを表示します（AND 条件）。</p>
+
+  <section class="card">
+    <form method="get" action="{{ url_for('search.search_artworks') }}">
+      <div class="form-field">
+        <label>タグ</label>
+        {% for tag in tags %}
+          <label>
+            <input type="checkbox" name="tag_ids" value="{{ tag.id }}"
+                   {% if tag.id in selected_ids %}checked{% endif %}>
+            #{{ tag.name }}
+          </label>
+        {% endfor %}
+      </div>
+      <div class="form-field">
+        <label for="keyword">キーワード（タイトル・説明）</label>
+        <input type="text" id="keyword" name="keyword" value="{{ keyword or '' }}">
+      </div>
+      <button class="btn btn-primary" type="submit">検索する</button>
+    </form>
+  </section>
+
+  <h2>検索結果（{{ results|length }}件）</h2>
+  {% if results %}
+    <div class="card-grid">
+      {% for artwork in results %}
+        <article class="card">
+          <div class="card-image">
+            <img src="{{ url_for('artworks.show_artwork_image', artwork_id=artwork.id) }}"
+                 alt="{{ artwork.title or '作品' }}" loading="lazy">
+          </div>
+          <h3>{{ artwork.title or '無題の作品' }}</h3>
+          <p class="muted">
+            {% for tag in artwork.tags %}<span class="badge">#{{ tag.name }}</span>{% endfor %}
+          </p>
+          {% if artwork.auction %}
+            <a class="btn btn-sm btn-primary"
+               href="{{ url_for('auctions.show_auction_detail', auction_id=artwork.auction.id) }}">
+              {{ artwork.auction.current_price }}pt で入札する
+            </a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">条件に合う作品はありません。</p>
+  {% endif %}
+{% endblock %}

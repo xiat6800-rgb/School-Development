@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}復旧コード - HEW{% endblock %}
+{% block content %}
+<h1>復旧コード</h1>
+<div class="notice recovery-code-box">
+  <p>{% if first %}登録が完了しました。{% else %}復旧コードを再発行しました。旧コードは無効です。{% endif %}</p>
+  <p>このコードは<strong>この画面に一度だけ表示</strong>されます。今すぐ控えてください。</p>
+  <p class="code">{{ code }}</p>
+  <p>パスワードを忘れた場合、ユーザー名とこのコードで再設定できます。使用後のコードは無効になります。</p>
+</div>
+<p><a href="{{ url_for('main.show_top') }}">トップへ</a>{% if not first %} / <a href="{{ url_for('auth.show_account') }}">アカウント画面へ戻る</a>{% endif %}</p>
+{% endblock %}

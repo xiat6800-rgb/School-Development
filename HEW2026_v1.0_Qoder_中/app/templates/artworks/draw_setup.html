@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}描画時間の選択 - HEW{% endblock %}
+{% block content %}
+<h1>描画をはじめる</h1>
+<p>制限時間を選んで描き始めます。<strong>開始後は制限時間を変更できません。</strong>切断・再読み込みでも時間は進みます。</p>
+<form method="post" action="{{ url_for('artworks.start_drawing') }}" class="form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <fieldset>
+    <legend>制限時間</legend>
+    {% for seconds in durations %}
+    <label class="radio">
+      <input type="radio" name="duration_seconds" value="{{ seconds }}" {% if loop.first %}checked{% endif %}>
+      {% if seconds < 60 %}{{ seconds }}秒{% else %}{{ seconds // 60 }}分{% endif %}
+    </label>
+    {% endfor %}
+  </fieldset>
+  <button type="submit">描き始める</button>
+</form>
+<p class="help">キャンバスは 1,024×1,024px、最大10レイヤー、元に戻す・やり直しは直近50操作です。</p>
+{% endblock %}

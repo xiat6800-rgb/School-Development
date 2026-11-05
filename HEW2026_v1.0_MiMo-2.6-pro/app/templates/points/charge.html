@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}チャージ{% endblock %}
+{% block content %}
+<h1>ポイントチャージ</h1>
+<div class="card">
+  <p><strong>現在、課金機能は提供されていません。</strong></p>
+  <p class="muted">
+    Ver0.5 では実際の決済・課金処理は行いません。ポイントは
+    ボーナス（登録・初出品・描画保存）で付与されます。
+  </p>
+  <div class="row">
+    <a class="button secondary" href="{{ url_for('points.show_payment') }}">支払い画面へ</a>
+    <a class="button secondary" href="{{ url_for('points.show_bonus_points') }}">ボーナス画面へ</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}復旧コード{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;">
+  <h1>復旧コードを再発行しました</h1>
+  <p>以下の新しい復旧コードを控えてください。<strong>この画面は一度しか表示されません。</strong></p>
+  <p class="recovery-code">{{ recovery_code }}</p>
+  <p class="muted">旧コードは無効化されました。</p>
+  <a class="button" href="{{ url_for('auth.show_account') }}">アカウントへ戻る</a>
+</div>
+<style>.recovery-code{
+  font-family: monospace; font-size: 28px; letter-spacing: 0.12em;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 14px 18px; border-radius: 10px; text-align: center;
+}</style>
+{% endblock %}

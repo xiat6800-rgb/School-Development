@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}出品設定{% endblock %}
+{% block content %}
+<h1>出品設定</h1>
+<div class="card" style="max-width:560px;">
+  <p class="muted">
+    出品を確定すると作品が公開され、オークションが即時開始します。
+    非表示レイヤーを含む完成時の全レイヤー（編集履歴を除く）は、
+    落札確定後に落札者へ渡ります。
+  </p>
+  {% if artwork.image_path %}
+    <img src="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}"
+         alt="{{ artwork.title }}"
+         style="max-width:240px;width:100%;border-radius:10px;border:1px solid var(--line);margin-bottom:12px;">
+  {% endif %}
+  <form class="stack" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>タイトル
+      <input type="text" name="title" value="{{ artwork.title }}" maxlength="200" required>
+    </label>
+    <label>説明
+      <textarea name="description">{{ artwork.description or '' }}</textarea>
+    </label>
+    <label>タグ（複数選択可）
+      <select name="tag_ids" multiple size="6">
+        {% for tag in tags %}
+        <option value="{{ tag.id }}"
+          {% if tag.id in selected_tag_ids %}selected{% endif %}>{{ tag.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>開始価格（pt・0以上）
+      <input type="number" name="start_price" value="0" min="0" step="1" required>
+    </label>
+    <label>開催時間
+      <select name="duration_minutes">
+        {% for minutes in durations %}
+        <option value="{{ minutes }}" {% if minutes == 10 %}selected{% endif %}>
+          {{ minutes }}分{% if minutes == 10 %}（初期値）{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">出品してオークションを開始</button>
+  </form>
+</div>
+{% endblock %}

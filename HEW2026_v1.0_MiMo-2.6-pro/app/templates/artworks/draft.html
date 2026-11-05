@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}下書き{% endblock %}
+{% block content %}
+<h1>下書き</h1>
+<div class="card">
+  <h2>{{ artwork.title }}</h2>
+  {% if artwork.image_path %}
+    <img src="{{ url_for('artworks.artwork_image', artwork_id=artwork.id) }}"
+         alt="{{ artwork.title }}"
+         style="max-width:320px;width:100%;border-radius:10px;border:1px solid var(--line);">
+  {% endif %}
+  <p class="muted">
+    正式保存後の加筆・レイヤー編集・画像の差し替えはできません。
+    出品情報（タイトル・説明）のみ編集できます。
+  </p>
+  <div class="row">
+    {% if artwork.is_formally_saved %}
+      <a class="button secondary"
+         href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, asset='png') }}">原寸PNGを保存</a>
+      <a class="button secondary"
+         href="{{ url_for('artworks.download_artwork_asset', artwork_id=artwork.id, asset='layers') }}">レイヤーZIPを保存</a>
+    {% endif %}
+    {% if artwork.status == 'draft' and artwork.is_formally_saved %}
+      <a class="button" href="{{ url_for('artworks.listing_form', artwork_id=artwork.id) }}">出品設定へ進む</a>
+    {% endif %}
+    {% for auction in artwork.auctions %}
+      <a class="button secondary"
+         href="{{ url_for('auctions.show_auction_detail', auction_id=auction.id) }}">オークション詳細</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>出品情報の編集</h2>
+  <form class="stack" method="post" action="{{ url_for('artworks.update_metadata', artwork_id=artwork.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>タイトル
+      <input type="text" name="title" value="{{ artwork.title }}" maxlength="200" required>
+    </label>
+    <label>説明
+      <textarea name="description">{{ artwork.description or '' }}</textarea>
+    </label>
+    <button type="submit">更新</button>
+  </form>
+  {% if tags %}
+  <p class="muted">タグ: {{ tags | join("、") }}</p>
+  {% endif %}
+</div>
+{% endblock %}

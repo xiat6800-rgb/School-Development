@@ -23,6 +23,8 @@ HEW2026 チームプロジェクトの共有リポジトリ。複数の AI ツ�
 
 ## CI
 
+CI 設定は `.github/workflows/ci.yml` に置きます。接続中の GitHub App に `workflows` 権限がないため `.github/workflows/` へ直接書き込めないため、現在は `.github/ci.yml` に置いています。`git mv .github/ci.yml .github/workflows/ci.yml` で確定してください。
+
 `.github/workflows/ci.yml` は `网页` ブランチを対象に、matrix で残している 2 実装（`HEW2026_v1.0_MiniMaxCode_xhigh` と `HEW2026_v1.0_MiniMaxCode_high`）をそれぞれ検証します。
 
 - **Lint + Test** — Ruff（構文・未定義名の検査、ブロッキング）＋ Pytest

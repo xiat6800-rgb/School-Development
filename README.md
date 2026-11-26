@@ -9,12 +9,10 @@ HEW2026 チームプロジェクトの共有リポジトリ。複数の AI ツ�
 | `設計・要件/` | 要件定義書（日本語） |
 | `HEW2026_v1.0_MiniMaxCode_high/` | MiniMax Code + MiniMax M3.1 Flash 実装（v1.0、Ver0.5 範囲） |
 | `HEW2026_v1.0_MiniMaxCode_xhigh/` | 上記の xhigh 版（データモデル刷新、既定 DB は MySQL） |
-| `HEW2026_v1.0_MiMo-2.6-pro/` | Xiaomi MiMo 2.6 Pro 実装（v1.0） |
-| `HEW2026_v1.0_Qoder_中/` | Qoder（思考程度：中）実装（v1.0、Ver0.5 範囲） |
-| `HEW2026_v1.0_TraeWorkCN_高/` | TraeWorkCN + DeepSeek 実装（v1.0） |
 | `docs/` | 並行開発の要求書・進行メモ |
-| `hew2026-workflow-workshop/` | GitHub Actions の学習用サンプル |
 | `系统组成.txt` | 構成メモ |
+
+旧実装（`HEW2026_v1.0_MiMo-2.6-pro`／`HEW2026_v1.0_Qoder_中`／`HEW2026_v1.0_TraeWorkCN_高`）および `hew2026-workflow-workshop` は削除済みです。
 
 ## 開発ルール
 
@@ -25,13 +23,15 @@ HEW2026 チームプロジェクトの共有リポジトリ。複数の AI ツ�
 
 ## CI
 
-`.github/workflows/ci.yml` は現状 `main`（廃止済み）と `HEW2026_v1.0_Chatbox_DeepSeek4.1Flash/`（削除済み）を参照したままで、新しい構成に合わせた更新が必要です。
+`.github/workflows/ci.yml` は `网页` ブランチを対象に、matrix で残している 2 実装（`HEW2026_v1.0_MiniMaxCode_xhigh` と `HEW2026_v1.0_MiniMaxCode_high`）をそれぞれ検証します。
 
 - **Lint + Test** — Ruff（構文・未定義名の検査、ブロッキング）＋ Pytest
 - **Security checks** — Bandit（静的セキュリティ診断）＋ pip-audit（既知 CVE）
 
-現在 CI が読む実装は無い（旧パスのみを参照）ため、対象実装を決めて `ci.yml` を書き換える必要があります。
-`jobs.<id>.defaults.run.working-directory` は `${{ env.X }}` を解決できないため、パスはリテラルで書いています。
+両実装とも `SELECT ... FOR UPDATE` の行ロックを使うため、CI は MySQL 8 サービスに接続して動かします。
+テスト DB は実装ごとに専用（`hew_xhigh_test` / `hew_test`）。xhigh の `test_config.py` は
+テスト DB 名が `hew_xhigh_test` であることを前提にしているため、名前を変えるとテストが落ちます。
+`jobs.<id>.steps[*].working-directory` は `${{ env.X }}` を解決できないため、対象パスは matrix のリテラルで書いています。
 
 ## ローカルでのテスト
 

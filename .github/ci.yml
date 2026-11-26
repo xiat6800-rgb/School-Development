@@ -1,0 +1,128 @@
+name: CI
+
+# このリポジトリは複数の実装（AI ツール別）を 1 つにまとめた構成。
+# GitHub Actions が読むのは「リポジトリ直下の」.github/workflows/ だけ。
+#
+# 注意: working-directory には ${{ env.XXX }} を書かない。
+# この場所では env コンテキストが解決されず、コマンドがリポジトリ直下で
+# 実行されてしまう（他の実装の tests/ まで拾って失敗する）。
+# 対象パスは matrix のリテラルで指定する（matrix コンテキストは解決される）。
+
+on:
+  push:
+    branches: [网页]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint + Test (${{ matrix.impl }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - impl: HEW2026_v1.0_MiniMaxCode_xhigh
+            db_name: hew_xhigh_test
+          - impl: HEW2026_v1.0_MiniMaxCode_high
+            db_name: hew_test
+    # 両実装とも `SELECT ... FOR UPDATE` の行ロックを使う。
+    # SQLite では書き込みがデッドロックするため、CI は MySQL 8 で固定する。
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ${{ matrix.impl }}/requirements.txt
+
+      # 実装ごとに専用のテスト DB 名が決まっている（xhigh は test_config.py が
+      # `hew_xhigh_test` を前提にする）。matrix の db_name で作る。
+      - name: テスト用 DB を作成
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e \
+            "CREATE DATABASE IF NOT EXISTS \`${{ matrix.db_name }}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+      # どこで動いているかを必ずログに残す（失敗時の切り分けが一気に楽になる）
+      - name: 作業ディレクトリの確認
+        working-directory: ${{ matrix.impl }}
+        run: |
+          echo "pwd = $(pwd)"
+          ls
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.impl }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest-cov
+
+      - name: "Ruff (blocking: syntax / undefined name)"
+        working-directory: ${{ matrix.impl }}
+        run: ruff check --select E9,F63,F7,F82 .
+
+      - name: Ruff (report only)
+        working-directory: ${{ matrix.impl }}
+        run: ruff check . --exit-zero
+
+      - name: Pytest
+        working-directory: ${{ matrix.impl }}
+        env:
+          SECRET_KEY: ci-dummy-secret-key
+          TEST_DATABASE_URL: mysql+pymysql://root:root@127.0.0.1:3306/${{ matrix.db_name }}
+        run: pytest tests -q --cov=app --cov-report=term-missing
+
+  security:
+    name: Security checks (${{ matrix.impl }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        impl:
+          - HEW2026_v1.0_MiniMaxCode_xhigh
+          - HEW2026_v1.0_MiniMaxCode_high
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ${{ matrix.impl }}/requirements.txt
+
+      - name: Install
+        working-directory: ${{ matrix.impl }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt bandit pip-audit
+
+      - name: Bandit (static security scan)
+        working-directory: ${{ matrix.impl }}
+        run: bandit -r app -x app/static,app/__pycache__ -ll
+
+      - name: pip-audit (known CVEs in dependencies)
+        working-directory: ${{ matrix.impl }}
+        run: pip-audit -r requirements.txt
+        continue-on-error: true

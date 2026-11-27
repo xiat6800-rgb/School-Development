@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}LinguaFlow · 用世界的语言，打开更大的世界{% endblock %}
+
+{% block content %}
+<section class="hero shell">
+  <div class="hero-copy">
+    <span class="pill"><span class="pill-dot"></span>沉浸式多语种学习 · 英语 / 日语 / 韩语</span>
+    <h1>用世界的语言，<br><span class="gradient-text">打开更大的世界</span></h1>
+    <p class="lead">
+      分级课程体系搭配单词闪卡、语法精练、听力训练与口语跟读，
+      由学习数据为你生成专属路径，让每一次练习都算数。
+    </p>
+    <div class="hero-actions">
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.dashboard') }}">进入学习空间 <span class="arrow">→</span></a>
+      {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}">免费开始学习 <span class="arrow">→</span></a>
+      {% endif %}
+      <a class="btn btn-ghost btn-lg" href="{{ url_for('main.languages') }}">浏览课程</a>
+    </div>
+    <div class="hero-stats">
+      <div><strong>{{ stats.learners|xp_comma }}+</strong><span>学习者</span></div>
+      <div><strong>{{ stats.courses }}</strong><span>分级课程</span></div>
+      <div><strong>{{ stats.lessons }}</strong><span>互动课时</span></div>
+      <div><strong>4</strong><span>学习模块</span></div>
+    </div>
+  </div>
+
+  <div class="hero-visual" aria-hidden="true">
+    <div class="lang-card lang-card-en">
+      <span class="lc-flag">🇬🇧</span>
+      <span class="lc-word">Hello!</span>
+      <span class="lc-zh">你好！</span>
+      <div class="lc-bar"><span style="width: 72%"></span></div>
+      <span class="lc-meta">A1 · 单词记忆</span>
+    </div>
+    <div class="lang-card lang-card-ja">
+      <span class="lc-flag">🇯🇵</span>
+      <span class="lc-word">こんにちは</span>
+      <span class="lc-zh">你好</span>
+      <div class="lc-bar"><span style="width: 58%"></span></div>
+      <span class="lc-meta">N5 · 口语跟读</span>
+    </div>
+    <div class="lang-card lang-card-ko">
+      <span class="lc-flag">🇰🇷</span>
+      <span class="lc-word">안녕하세요</span>
+      <span class="lc-zh">你好</span>
+      <div class="lc-bar"><span style="width: 64%"></span></div>
+      <span class="lc-meta">TOPIK1 · 听力训练</span>
+    </div>
+
+    <div class="float-chip float-streak">🔥 连续学习 <b>7</b> 天</div>
+    <div class="float-chip float-xp">⚡ +30 XP</div>
+    <div class="float-ring">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" class="ring-track"/>
+        <circle cx="50" cy="50" r="40" class="ring-value" stroke-dasharray="251" stroke-dashoffset="63"/>
+      </svg>
+      <div class="ring-label"><strong>75%</strong><span>今日目标</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker">
+  <div class="ticker-track">
+    <span>📖 单词记忆</span><span>🧩 语法练习</span><span>🎧 听力训练</span><span>🎙️ 口语跟读</span>
+    <span>📈 进度追踪</span><span>🧭 个性路径</span><span>🏆 成就激励</span><span>💬 学习社区</span>
+    <span>📖 单词记忆</span><span>🧩 语法练习</span><span>🎧 听力训练</span><span>🎙️ 口语跟读</span>
+    <span>📈 进度追踪</span><span>🧭 个性路径</span><span>🏆 成就激励</span><span>💬 学习社区</span>
+  </div>
+</div>
+
+<section class="section shell" id="features">
+  <div class="section-head">
+    <span class="eyebrow">为什么选择 LinguaFlow</span>
+    <h2>把「坚持学习」变成一件上瘾的事</h2>
+    <p>从分级课程到成就激励，六个核心能力组成完整的学习闭环。</p>
+  </div>
+  <div class="feature-grid">
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#7c5cff">📚</span>
+      <h3>分级课程体系</h3>
+      <p>英语 A1-B1、日语 N5-N3、韩语 TOPIK1-3，三个级别层层解锁，目标清晰不迷路。</p>
+    </article>
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#22d3ee">🎮</span>
+      <h3>四维互动模块</h3>
+      <p>闪卡记忆、语法精练、听力辨义、口语跟读，用不同方式把知识真正练进大脑。</p>
+    </article>
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#4ade80">📈</span>
+      <h3>学习进度追踪</h3>
+      <p>14 天活跃曲线、技能分布、语言进度与学习时长，每一次进步都看得见。</p>
+    </article>
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#ffb454">🧭</span>
+      <h3>个性化推荐</h3>
+      <p>系统根据你的完成度与薄弱项，自动生成「继续学什么、复习哪一节、要不要试试新语言」。</p>
+    </article>
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#ff6b9d">🗣️</span>
+      <h3>沉浸式听说</h3>
+      <p>浏览器语音合成与识别，地道发音示范 + 实时跟读评分，随时开开口。</p>
+    </article>
+    <article class="feature-card">
+      <span class="feature-icon" style="--tint:#5b8cff">🏆</span>
+      <h3>社区与成就</h3>
+      <p>分享学习心得、互相打气，解锁 12 枚成就徽章，让坚持拥有回报。</p>
+    </article>
+  </div>
+</section>
+
+<section class="section shell" id="languages">
+  <div class="section-head">
+    <span class="eyebrow">课程语言</span>
+    <h2>选择一门语言，今天就开始</h2>
+    <p>每门语言 3 个级别、12 节互动课，支持随时切换或同时学习。</p>
+  </div>
+  <div class="language-grid">
+    {% for lang in languages %}
+      <article class="language-card" style="--from:{{ lang.gradient_from }}; --to:{{ lang.gradient_to }}">
+        <div class="language-card-top">
+          <span class="language-flag">{{ lang.flag }}</span>
+          <span class="language-count">{{ lang.learners|xp_comma }} 人在学</span>
+        </div>
+        <h3>{{ lang.name }} <span>{{ lang.native_name }}</span></h3>
+        <p>{{ lang.description }}</p>
+        <div class="language-levels">
+          {% for course in lang.courses %}
+            <a class="level-pill" href="{{ url_for('main.course', course_id=course.id) }}">
+              {{ course.level_code }}
+            </a>
+          {% endfor %}
+        </div>
+        <a class="language-cta" href="{{ url_for('main.course', course_id=lang.courses[0].id) }}">
+          开始学习 {{ lang.name }} <span>→</span>
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="section-head">
+    <span class="eyebrow">互动学习模块</span>
+    <h2>四种练习方式，一个沉浸式循环</h2>
+    <p>不必死记硬背，用「看、练、听、说」四个动作完成每一次学习。</p>
+  </div>
+  <div class="module-grid">
+    <article class="module-card" style="--from:#7c5cff; --to:#5b8cff">
+      <div class="module-demo flashcard-demo">
+        <div class="demo-card">
+          <small>Water</small>
+          <strong>水</strong>
+          <span>/ˈwɔː.tər/</span>
+        </div>
+      </div>
+      <h3>📖 单词记忆</h3>
+      <p>翻转闪卡理解词义，再用四选一测验即时检验。</p>
+    </article>
+    <article class="module-card" style="--from:#ff6b9d; --to:#ffb454">
+      <div class="module-demo grammar-demo">
+        <span class="demo-line">She ___ a teacher.</span>
+        <span class="demo-option is-correct">is</span>
+        <span class="demo-option">are</span>
+        <span class="demo-option">am</span>
+      </div>
+      <h3>🧩 语法练习</h3>
+      <p>填空、选择与倒装结构，做错立刻给出解析。</p>
+    </article>
+    <article class="module-card" style="--from:#22d3ee; --to:#4f7cff">
+      <div class="module-demo listening-demo">
+        <span class="demo-play">▶</span>
+        <div class="demo-wave">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <span class="demo-caption">听音频，选出正确释义</span>
+      </div>
+      <h3>🎧 听力训练</h3>
+      <p>语音播报地道例句，支持重听与原文回看。</p>
+    </article>
+    <article class="module-card" style="--from:#4ade80; --to:#22d3ee">
+      <div class="module-demo speaking-demo">
+        <span class="demo-mic">🎙️</span>
+        <div class="demo-score">92<span>分</span></div>
+        <div class="demo-bars"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <h3>🎙️ 口语跟读</h3>
+      <p>跟读整句并实时评分，从发音到语调逐一纠正。</p>
+    </article>
+  </div>
+</section>
+
+<section class="section shell split-section">
+  <div class="split-copy">
+    <span class="eyebrow">社区 · 成就</span>
+    <h2>一个人学习，<br>一群人坚持</h2>
+    <p>在社区分享你的方法、提问与打卡；完成课程解锁成就徽章，让努力被看见。</p>
+    <div class="achievement-preview">
+      {% for ach in achievements[:5] %}
+        <span class="ach-badge" title="{{ ach.name }}">{{ ach.icon }}<i>{{ ach.name }}</i></span>
+      {% endfor %}
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('main.community') }}">逛逛学习社区 →</a>
+  </div>
+  <div class="split-posts">
+    {% for post in featured %}
+      <a class="mini-post" href="{{ url_for('main.post_detail', post_id=post.id) }}">
+        <div class="mini-post-head">
+          <span class="avatar avatar-xs" style="--avatar: {{ post.author.avatar_color }}">{{ post.author.initial }}</span>
+          <span>{{ post.author.display_name }}</span>
+          <span class="mini-post-lang">{{ {'en':'英语','ja':'日语','ko':'韩语','all':'综合'}[post.language_code] }}</span>
+        </div>
+        <h4>{{ post.title }}</h4>
+        <p>{{ post.content[:64] }}…</p>
+        <span class="mini-post-meta">❤ {{ post.like_count }} · 💬 {{ post.comments|length }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section shell">
+  <div class="steps-band">
+    <div class="step">
+      <span class="step-num">01</span>
+      <h3>选择语言与级别</h3>
+      <p>从 A1 / N5 / TOPIK1 开始，或让系统根据你的目标推荐起点。</p>
+    </div>
+    <div class="step">
+      <span class="step-num">02</span>
+      <h3>完成四维互动课</h3>
+      <p>单词、语法、听力、口语任你安排，每节课 5-8 分钟。</p>
+    </div>
+    <div class="step">
+      <span class="step-num">03</span>
+      <h3>积累 XP 与成就</h3>
+      <p>保持连续学习，解锁新级别与徽章，在社区分享成果。</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band shell">
+  <div class="cta-inner">
+    <div>
+      <span class="eyebrow">现在开始</span>
+      <h2>你的下一门语言，<br>从今天的第一节课开始</h2>
+    </div>
+    <div class="cta-actions">
+      <a class="btn btn-primary btn-lg" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.register') }}">
+        {{ '继续学习' if current_user.is_authenticated else '免费注册' }} <span class="arrow">→</span>
+      </a>
+      <a class="btn btn-ghost btn-lg" href="{{ url_for('main.languages') }}">查看全部课程</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

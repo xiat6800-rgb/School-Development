@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}学习社区 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">学习社区</span>
+    <h1>一起学习，走得更远</h1>
+    <p class="muted">分享方法、提出问题、记录进步，和 {{ leaderboard[0].display_name if leaderboard else '大家' }} 一起保持学习热情。</p>
+  </div>
+  <div class="head-actions">
+    {% if current_user.is_authenticated %}
+      <button class="btn btn-primary" id="open-composer">✍️ 发布动态</button>
+    {% else %}
+      <a class="btn btn-primary" href="{{ url_for('auth.login', next=url_for('main.community')) }}">登录参与讨论</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="shell community-layout">
+  <div class="community-main">
+    {% if current_user.is_authenticated %}
+      <div class="panel composer" id="composer" hidden>
+        <div class="composer-head">
+          <span class="avatar avatar-sm" style="--avatar: {{ current_user.avatar_color }}">{{ current_user.initial }}</span>
+          <div><strong>分享你的学习心得</strong><small>正文字数 10-2000，标题 4-140</small></div>
+        </div>
+        <form id="composer-form" class="form-stack">
+          <div class="field-row">
+            <label class="field">
+              <span>标题</span>
+              <input type="text" name="title" maxlength="140" placeholder="例如：我的一周学习计划" required>
+            </label>
+            <label class="field field-narrow">
+              <span>分类</span>
+              <select name="language_code">
+                {% for key, label in post_filters %}
+                  <option value="{{ key }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span>正文</span>
+            <textarea name="content" rows="4" maxlength="2000" placeholder="写下你的学习方法、疑问或打卡记录……" required></textarea>
+          </label>
+          <div class="composer-actions">
+            <span class="muted" id="composer-hint">友善交流，共同进步</span>
+            <button class="btn btn-primary btn-sm" type="submit">发布</button>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="filter-tabs">
+      {% for key, label in post_filters %}
+        <a class="filter-tab {{ 'active' if active_filter == key }}" href="{{ url_for('main.community', lang=key) }}">
+          {{ label }} <span>{{ counts.get(key, 0) }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="post-list">
+      {% for post in posts %}
+        <article class="post-card">
+          <div class="post-head">
+            <span class="avatar" style="--avatar: {{ post.author.avatar_color }}">{{ post.author.initial }}</span>
+            <div class="post-author">
+              <strong>{{ post.author.display_name }}</strong>
+              <small>Lv.{{ post.author.level }} · {{ post.created_at.strftime('%m月%d日') }}</small>
+            </div>
+            <span class="post-lang lang-{{ post.language_code }}">{{ {'en':'英语','ja':'日语','ko':'韩语','all':'综合'}[post.language_code] }}</span>
+          </div>
+          <a class="post-title" href="{{ url_for('main.post_detail', post_id=post.id) }}">{{ post.title }}</a>
+          <p class="post-excerpt">{{ post.content[:120] }}{% if post.content|length > 120 %}…{% endif %}</p>
+          <div class="post-foot">
+            <button class="like-btn {{ 'is-liked' if post.id in liked_ids }}" data-post-id="{{ post.id }}" data-liked="{{ '1' if post.id in liked_ids else '0' }}">
+              <span class="like-icon">♥</span><span class="like-count">{{ post.like_count }}</span>
+            </button>
+            <a class="post-comment-link" href="{{ url_for('main.post_detail', post_id=post.id) }}">💬 {{ post.comments|length }}</a>
+            <a class="post-open" href="{{ url_for('main.post_detail', post_id=post.id) }}">阅读全文 →</a>
+          </div>
+        </article>
+      {% else %}
+        <div class="empty-state">
+          <span>🌱</span>
+          <h3>还没有动态</h3>
+          <p>成为第一个分享学习心得的人吧。</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="community-side">
+    <div class="panel">
+      <div class="panel-head"><div><h3>学习排行榜</h3><p class="muted">按累计 XP 排序</p></div></div>
+      <div class="leader-list">
+        {% for user in leaderboard %}
+          <div class="leader-row {{ 'is-me' if current_user.is_authenticated and user.id == current_user.id }}">
+            <span class="leader-rank {{ 'top' if loop.index <= 3 }}">{{ loop.index }}</span>
+            <span class="avatar avatar-xs" style="--avatar: {{ user.avatar_color }}">{{ user.initial }}</span>
+            <div class="leader-body"><strong>{{ user.display_name }}</strong><small>Lv.{{ user.level }} · {{ user.level_name }}</small></div>
+            <span class="leader-xp">{{ user.total_xp|xp_comma }} XP</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>社区公约</h3></div></div>
+      <ul class="check-list muted-list">
+        <li>💬 友善提问，耐心解答</li>
+        <li>📝 分享真实的学习方法</li>
+        <li>🚫 不发布广告与无关内容</li>
+        <li>🌍 尊重每种语言与文化</li>
+      </ul>
+    </div>
+
+    <div class="panel quote-panel">
+      <p>“一个人可以走得很快，一群人才能走得更远。”</p>
+      <span>—— LinguaFlow 社区</span>
+    </div>
+  </aside>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+{% endblock %}

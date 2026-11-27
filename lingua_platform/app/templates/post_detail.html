@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · 社区 · LinguaFlow{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb shell">
+  <a href="{{ url_for('main.community') }}">社区</a><span>/</span><span>{{ {'en':'英语','ja':'日语','ko':'韩语','all':'综合'}[post.language_code] }}</span>
+</nav>
+
+<section class="shell post-detail-layout">
+  <article class="post-detail panel">
+    <div class="post-head">
+      <span class="avatar" style="--avatar: {{ post.author.avatar_color }}">{{ post.author.initial }}</span>
+      <div class="post-author">
+        <strong>{{ post.author.display_name }}</strong>
+        <small>Lv.{{ post.author.level }} · {{ post.created_at.strftime('%Y年%m月%d日 %H:%M') }}</small>
+      </div>
+      <span class="post-lang lang-{{ post.language_code }}">{{ {'en':'英语','ja':'日语','ko':'韩语','all':'综合'}[post.language_code] }}</span>
+    </div>
+    <h1 class="post-detail-title">{{ post.title }}</h1>
+    <div class="post-content">{{ post.content }}</div>
+    <div class="post-foot post-foot-lg">
+      <button class="like-btn {{ 'is-liked' if liked }}" data-post-id="{{ post.id }}" data-liked="{{ '1' if liked else '0' }}">
+        <span class="like-icon">♥</span><span class="like-count">{{ post.like_count }}</span>
+      </button>
+      <span class="post-comment-count">💬 <span id="comment-total">{{ post.comments|length }}</span> 条评论</span>
+    </div>
+
+    <section class="comment-section">
+      <h3>评论 <span id="comment-count-inline">{{ post.comments|length }}</span></h3>
+      {% if current_user.is_authenticated %}
+        <form id="comment-form" class="comment-form" data-post-id="{{ post.id }}">
+          <span class="avatar avatar-sm" style="--avatar: {{ current_user.avatar_color }}">{{ current_user.initial }}</span>
+          <input type="text" name="content" maxlength="500" placeholder="写下你的想法或提问…" required>
+          <button class="btn btn-primary btn-sm" type="submit">发送</button>
+        </form>
+      {% else %}
+        <p class="muted"><a href="{{ url_for('auth.login', next=url_for('main.post_detail', post_id=post.id)) }}">登录</a> 后即可参与评论。</p>
+      {% endif %}
+
+      <div class="comment-list" id="comment-list">
+        {% for comment in post.comments %}
+          <div class="comment-item">
+            <span class="avatar avatar-xs" style="--avatar: {{ comment.author.avatar_color }}">{{ comment.author.initial }}</span>
+            <div class="comment-body">
+              <div class="comment-head"><strong>{{ comment.author.display_name }}</strong><small>{{ comment.created_at.strftime('%m月%d日 %H:%M') }}</small></div>
+              <p>{{ comment.content }}</p>
+            </div>
+          </div>
+        {% else %}
+          <p class="empty-note" id="no-comments">还没有评论，来说点什么吧。</p>
+        {% endfor %}
+      </div>
+    </section>
+  </article>
+
+  <aside class="post-side">
+    <div class="panel author-card">
+      <span class="avatar avatar-lg" style="--avatar: {{ post.author.avatar_color }}">{{ post.author.initial }}</span>
+      <h3>{{ post.author.display_name }}</h3>
+      <p class="muted">{{ post.author.bio or '这位同学还没有填写简介。' }}</p>
+      <div class="author-stats">
+        <div><strong>{{ post.author.total_xp|xp_comma }}</strong><span>XP</span></div>
+        <div><strong>Lv.{{ post.author.level }}</strong><span>{{ post.author.level_name }}</span></div>
+        <div><strong>{{ post.author.streak }}</strong><span>连续天数</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>更多讨论</h3></div></div>
+      <div class="related-list">
+        {% for item in related %}
+          <a class="related-item" href="{{ url_for('main.post_detail', post_id=item.id) }}">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.author.display_name }} · ❤ {{ item.like_count }}</span>
+          </a>
+        {% else %}
+          <p class="empty-note">暂无其他讨论。</p>
+        {% endfor %}
+      </div>
+      <a class="btn btn-soft btn-block" href="{{ url_for('main.community') }}">返回社区</a>
+    </div>
+  </aside>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}学习空间 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">学习空间</span>
+    <h1>你好，{{ current_user.display_name }} <span class="wave">👋</span></h1>
+    <p class="muted">今天也向目标靠近一点点。继续保持，你的语言能力正在积累。</p>
+  </div>
+  <div class="level-block">
+    <div class="level-row">
+      <span class="level-badge">Lv.{{ current_user.level }}</span>
+      <span class="level-name">{{ current_user.level_name }}</span>
+      <span class="level-xp">{{ current_user.total_xp|xp_comma }} XP</span>
+    </div>
+    <div class="meter">
+      <span style="width: {{ current_user.level_percent }}%"></span>
+    </div>
+    <small class="muted">{% if current_user.level < 6 %}再获得 {{ 200 - current_user.level_xp }} XP 升级{% else %}已达最高等级，继续保持{% endif %}</small>
+  </div>
+</section>
+
+<section class="shell stat-grid">
+  <article class="stat-card">
+    <span class="stat-icon" style="--tint:#ff9f5a">🔥</span>
+    <div><strong>{{ current_user.streak }}</strong><span>连续学习天数</span></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon" style="--tint:#ffd166">⚡</span>
+    <div><strong>{{ today_xp }}</strong><span>今日获得 XP</span></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon" style="--tint:#4ade80">✅</span>
+    <div><strong>{{ metrics.lessons }}</strong><span>已完成课时</span></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon" style="--tint:#22d3ee">📚</span>
+    <div><strong>{{ metrics.words }}</strong><span>掌握单词</span></div>
+  </article>
+  <article class="stat-card">
+    <span class="stat-icon" style="--tint:#7c5cff">🏆</span>
+    <div><strong>{{ unlocked_count }}</strong><span>解锁成就</span></div>
+  </article>
+</section>
+
+<section class="shell dashboard-grid">
+  <div class="dash-main">
+    {% set top = recommendations[0] if recommendations else None %}
+    {% if top %}
+      <article class="continue-card" style="--from: {{ top.accent }}; --to: {{ top.course.language.gradient_to }}">
+        <div class="continue-copy">
+          <span class="continue-tag">{{ '继续学习' if top.type == 'lesson' else '推荐开始' }}</span>
+          <h2>{{ top.title }}</h2>
+          <p>{{ top.reason }}</p>
+          <div class="continue-meta">
+            <span>{{ top.course.language.flag }} {{ top.course.language.name }}</span>
+            <span>{{ top.course.level_code }}</span>
+            <span>{{ top.course.title }}</span>
+          </div>
+          <a class="btn btn-light" href="{{ url_for('main.lesson', lesson_id=top.lesson.id) if top.type == 'lesson' else url_for('main.course', course_id=top.course.id) }}">
+            {{ '继续这一课' if top.type == 'lesson' else '进入课程' }} <span class="arrow">→</span>
+          </a>
+        </div>
+        <div class="continue-art" aria-hidden="true">
+          <span class="ca-flag">{{ top.course.language.flag }}</span>
+          <span class="ca-icon">{{ top.icon }}</span>
+        </div>
+      </article>
+    {% else %}
+      <article class="continue-card" style="--from:#7c5cff; --to:#22d3ee">
+        <div class="continue-copy">
+          <span class="continue-tag">开始学习</span>
+          <h2>选择你的第一门语言</h2>
+          <p>从英语、日语、韩语中任选一门，开启 5 分钟的体验课。</p>
+          <a class="btn btn-light" href="{{ url_for('main.languages') }}">浏览课程 →</a>
+        </div>
+        <div class="continue-art" aria-hidden="true"><span class="ca-flag">🌍</span><span class="ca-icon">✨</span></div>
+      </article>
+    {% endif %}
+
+    {% if recommendations|length > 1 %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>为你推荐</h3><p class="muted">基于你的完成度与薄弱项生成</p></div>
+        <span class="panel-badge">个性化</span>
+      </div>
+      <div class="rec-list">
+        {% for rec in recommendations[1:] %}
+          <a class="rec-item" href="{{ url_for('main.lesson', lesson_id=rec.lesson.id) if rec.type == 'lesson' else url_for('main.course', course_id=rec.course.id) }}">
+            <span class="rec-icon" style="--tint: {{ rec.accent }}">{{ rec.icon }}</span>
+            <div class="rec-body">
+              <strong>{{ rec.title }}</strong>
+              <span>{{ rec.reason }}</span>
+            </div>
+            <span class="rec-meta">{{ rec.course.language.flag }} {{ rec.course.level_code }}</span>
+            <span class="rec-arrow">→</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if started_courses %}
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>进行中的课程</h3><p class="muted">保持节奏，完成本级别即可解锁下一阶段</p></div>
+        </div>
+        <div class="course-progress-list">
+          {% for row in started_courses %}
+            <a class="cp-item" href="{{ url_for('main.course', course_id=row.course.id) }}">
+              <span class="cp-flag">{{ row.course.language.flag }}</span>
+              <div class="cp-body">
+                <div class="cp-title"><strong>{{ row.course.title }}</strong><span>{{ row.stats.completed }}/{{ row.stats.total }}</span></div>
+                <div class="meter"><span style="width: {{ row.stats.percent }}%"></span></div>
+                <small class="muted">{{ '下一课：' ~ row.next.title if row.next else '本课程已完成，试试下一级别' }}</small>
+              </div>
+              <span class="cp-percent">{{ row.stats.percent }}%</span>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>语言进度</h3><p class="muted">三门语言随时切换，同时学习互不干扰</p></div>
+        <a class="link-more" href="{{ url_for('main.languages') }}">全部课程 →</a>
+      </div>
+      <div class="lang-progress">
+        {% for row in overview %}
+          <a class="lp-row" href="{{ url_for('main.course', course_id=row.language.courses[0].id) }}" style="--from:{{ row.language.gradient_from }}; --to:{{ row.language.gradient_to }}">
+            <span class="lp-flag">{{ row.language.flag }}</span>
+            <div class="lp-body">
+              <div class="cp-title"><strong>{{ row.language.name }}</strong><span>{{ row.completed }}/{{ row.total }} 节</span></div>
+              <div class="meter"><span style="width: {{ row.percent }}%"></span></div>
+            </div>
+            <span class="lp-percent">{{ row.percent }}%</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <aside class="dash-side">
+    <div class="panel goal-panel">
+      <div class="goal-ring">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" class="ring-track"/>
+          <circle cx="60" cy="60" r="52" class="ring-value" style="stroke-dasharray: 326.7; stroke-dashoffset: {{ 326.7 - 326.7 * goal_percent / 100 }}"/>
+        </svg>
+        <div class="goal-label">
+          <strong>{{ today_xp }}<small>/{{ goal }} XP</small></strong>
+          <span>今日目标</span>
+        </div>
+      </div>
+      <p class="goal-hint">
+        {% if today_xp >= goal %}🎉 今日目标已完成，非常棒！{% else %}再获得 {{ goal - today_xp }} XP 即可完成今日目标。{% endif %}
+      </p>
+      <a class="btn btn-soft btn-block" href="{{ url_for('main.progress') }}">查看学习报告</a>
+    </div>
+
+    <div class="panel week-panel">
+      <div class="panel-head"><div><h3>本周活跃</h3><p class="muted">每日获得 XP</p></div></div>
+      <div class="week-bars">
+        {% set max_xp = week|map(attribute='xp')|max %}
+        {% set max_xp = max_xp if max_xp > 0 else 1 %}
+        {% for day in week %}
+          <div class="week-bar {{ 'is-today' if day.is_today }}">
+            <div class="week-bar-track">
+              <span style="height: {{ (day.xp / max_xp * 100)|round|int if day.xp > 0 else 4 }}%"></span>
+            </div>
+            <small>{{ day.label }}</small>
+            <em>{{ day.xp }}</em>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>最近成就</h3><p class="muted">{{ unlocked_count }}/{{ achievement_total }} 已解锁</p></div>
+        <a class="link-more" href="{{ url_for('main.achievements') }}">全部 →</a>
+      </div>
+      {% if achievements %}
+        <div class="ach-mini-list">
+          {% for row in achievements %}
+            <div class="ach-mini">
+              <span class="ach-mini-icon">{{ row.achievement.icon }}</span>
+              <div><strong>{{ row.achievement.name }}</strong><small>{{ row.achievement.description }}</small></div>
+              <span class="ach-mini-xp">+{{ row.achievement.xp_reward }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-note">完成第一节课，就能点亮第一枚徽章。</p>
+      {% endif %}
+    </div>
+
+    <div class="panel tip-panel">
+      <span class="tip-emoji">💡</span>
+      <h4>学习小贴士</h4>
+      <p>短时高频比长时间突击更有效。每天 10 分钟，连续 7 天，你会发现语感明显提升。</p>
+    </div>
+  </aside>
+</section>
+{% endblock %}

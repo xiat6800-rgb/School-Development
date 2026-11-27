@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}课程体系 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">分级课程体系</span>
+    <h1>选择你的语言与起点</h1>
+    <p class="muted">每门语言包含 {{ 3 }} 个级别、12 节互动课。完成当前级别全部课程即可解锁下一级别。</p>
+  </div>
+  {% if not current_user.is_authenticated %}
+    <a class="btn btn-primary" href="{{ url_for('auth.register') }}">注册后开始学习 →</a>
+  {% endif %}
+</section>
+
+<section class="shell language-stack">
+  {% for row in rows %}
+    {% set lang = row.language %}
+    <article class="language-section" style="--from:{{ lang.gradient_from }}; --to:{{ lang.gradient_to }}">
+      <div class="language-section-side">
+        <span class="language-flag-lg">{{ lang.flag }}</span>
+        <h2>{{ lang.name }}</h2>
+        <span class="native-name">{{ lang.native_name }}</span>
+        <p>{{ lang.description }}</p>
+        <div class="language-stat">
+          <strong>{{ lang.learners|xp_comma }}</strong><span>学习者</span>
+        </div>
+        <div class="language-greeting">
+          <small>{{ lang.greeting_zh }}</small>
+          <strong>{{ lang.greeting }}</strong>
+        </div>
+      </div>
+      <div class="course-cards">
+        {% for item in row.courses %}
+          {% set course = item.course %}
+          {% set st = item.stats %}
+          <a class="course-card" href="{{ url_for('main.course', course_id=course.id) }}" style="--from:{{ lang.gradient_from }}; --to:{{ lang.gradient_to }}">
+            <div class="course-card-top">
+              <span class="level-tag">{{ course.level_code }}</span>
+              <span class="course-status">{{ course.status_label }}{% if current_user.is_authenticated %} · {{ st.percent }}%{% endif %}</span>
+            </div>
+            <h3>{{ course.title }}</h3>
+            <p>{{ course.subtitle }}</p>
+            <div class="course-card-meta">
+              <span>📘 {{ course.lessons|length }} 节课</span>
+              <span>⏱ 约 {{ course.lessons|map(attribute='duration')|sum }} 分钟</span>
+            </div>
+            <div class="course-modules">
+              <span title="单词记忆">📖</span>
+              <span title="语法练习">🧩</span>
+              <span title="听力训练">🎧</span>
+              <span title="口语跟读">🎙️</span>
+              <em>四维互动</em>
+            </div>
+            {% if current_user.is_authenticated %}
+              <div class="course-progress-row">
+                <div class="meter"><span style="width: {{ st.percent }}%"></span></div>
+                <small>{{ st.completed }}/{{ st.total }}</small>
+              </div>
+            {% else %}
+              <div class="course-progress-row">
+                <span class="course-start">开始学习 →</span>
+              </div>
+            {% endif %}
+            {% if course.level > 1 and not item.unlocked %}<span class="course-lock">🔒 需先完成上一级别全部课程</span>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

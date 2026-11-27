@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}成就系统 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">成就系统</span>
+    <h1>每一份坚持，都值得被奖励</h1>
+    <p class="muted">完成课程、保持连续学习、参与社区，都能点亮新的徽章并获得额外 XP。</p>
+  </div>
+  <div class="achievement-summary">
+    <div class="as-num">{{ unlocked_count }}<span>/{{ total }}</span></div>
+    <div class="as-bar"><div class="meter"><span style="width: {{ (unlocked_count / total * 100)|round|int if total else 0 }}%"></span></div></div>
+    <small class="muted">已解锁徽章</small>
+  </div>
+</section>
+
+<section class="shell achievement-grid">
+  {% for row in rows %}
+    {% set ach = row.achievement %}
+    <article class="achievement-card {{ 'is-unlocked' if row.unlocked else 'is-locked' }}">
+      <div class="ach-icon-wrap">
+        <span class="ach-icon">{{ ach.icon }}</span>
+        {% if row.unlocked %}<span class="ach-check">✓</span>{% else %}<span class="ach-lock">🔒</span>{% endif %}
+      </div>
+      <h3>{{ ach.name }}</h3>
+      <p>{{ ach.description }}</p>
+      <div class="ach-progress">
+        <div class="meter"><span style="width: {{ row.percent }}%"></span></div>
+        <div class="ach-progress-meta">
+          <small>{{ row.current if row.current < ach.threshold else ach.threshold }} / {{ ach.threshold }}</small>
+          <span class="ach-xp">+{{ ach.xp_reward }} XP</span>
+        </div>
+      </div>
+      {% if row.unlocked %}
+        <span class="ach-date">已解锁 · {{ row.unlocked_at.strftime('%Y/%m/%d') if row.unlocked_at else '' }}</span>
+      {% else %}
+        <span class="ach-date muted">继续加油，即可解锁</span>
+      {% endif %}
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

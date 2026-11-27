@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} · {{ course.title }} · LinguaFlow{% endblock %}
+{% block body_class %}lesson-body{% endblock %}
+{% block main_class %}lesson-main{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="lesson-page">
+  <header class="lesson-top">
+    <a class="lesson-back" href="{{ url_for('main.course', course_id=course.id) }}" aria-label="返回课程">←</a>
+    <div class="lesson-top-info">
+      <div class="lesson-top-line">
+        <span class="lesson-top-title">{{ course.language.flag }} {{ course.title }} · {{ lesson.title }}</span>
+        <span class="lesson-top-best">{% if progress and progress.completed %}最佳成绩 {{ progress.best_score }} 分{% else %}首次学习{% endif %}</span>
+      </div>
+      <div class="lesson-progress"><span id="lesson-progress-bar" style="width: 0%"></span></div>
+    </div>
+    <div class="lesson-top-right">
+      <span class="lesson-counter" id="lesson-counter">准备开始</span>
+      <span class="lesson-score-pill" id="lesson-score-pill">0 分</span>
+    </div>
+  </header>
+
+  <main class="lesson-stage" id="lesson-stage"></main>
+</div>
+
+<div class="result-overlay hidden" id="result-overlay">
+  <div class="result-card" id="result-card"></div>
+</div>
+
+<script id="lesson-data" type="application/json">{{ payload|tojson }}</script>
+<script>
+  window.LESSON_META = {
+    nextLessonUrl: {{ (url_for('main.lesson', lesson_id=next_lesson.id) if next_lesson else '')|tojson }},
+    nextLessonTitle: {{ (next_lesson.title if next_lesson else '')|tojson }},
+    courseUrl: {{ url_for('main.course', course_id=course.id)|tojson }},
+    achievementsUrl: {{ url_for('main.achievements')|tojson }}
+  };
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/lesson.js') }}"></script>
+{% endblock %}

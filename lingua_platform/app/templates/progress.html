@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}学习进度 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">学习进度</span>
+    <h1>你的学习数据报告</h1>
+    <p class="muted">用数据看见坚持的力量：活跃曲线、技能分布、语言进度与最近学习记录。</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-ghost" href="{{ url_for('main.profile') }}">调整每日目标</a>
+    <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">回到学习空间 →</a>
+  </div>
+</section>
+
+<section class="shell stat-grid six" id="progress-stats">
+  <article class="stat-card"><span class="stat-icon" style="--tint:#7c5cff">⚡</span><div><strong id="stat-xp">—</strong><span>累计 XP</span></div></article>
+  <article class="stat-card"><span class="stat-icon" style="--tint:#4ade80">✅</span><div><strong id="stat-lessons">—</strong><span>完成课时</span></div></article>
+  <article class="stat-card"><span class="stat-icon" style="--tint:#22d3ee">⏱</span><div><strong id="stat-minutes">—</strong><span>学习分钟</span></div></article>
+  <article class="stat-card"><span class="stat-icon" style="--tint:#ffd166">🎯</span><div><strong id="stat-score">—</strong><span>平均得分</span></div></article>
+  <article class="stat-card"><span class="stat-icon" style="--tint:#ff6b9d">📚</span><div><strong id="stat-words">—</strong><span>掌握单词</span></div></article>
+  <article class="stat-card"><span class="stat-icon" style="--tint:#ff9f5a">🔥</span><div><strong id="stat-streak">—</strong><span>连续天数</span></div></article>
+</section>
+
+<section class="shell progress-grid">
+  <div class="panel chart-panel span-2">
+    <div class="panel-head">
+      <div><h3>近 14 天学习活跃度</h3><p class="muted">每日获得的 XP</p></div>
+      <span class="panel-badge" id="activity-total">—</span>
+    </div>
+    <div class="chart-area" id="activity-chart"></div>
+  </div>
+
+  <div class="panel chart-panel">
+    <div class="panel-head"><div><h3>技能分布</h3><p class="muted">四类学习模块完成度</p></div></div>
+    <div class="skill-list" id="skill-chart"></div>
+  </div>
+
+  <div class="panel chart-panel">
+    <div class="panel-head"><div><h3>语言进度</h3><p class="muted">各语言课程完成情况</p></div></div>
+    <div class="lang-donuts" id="lang-chart"></div>
+  </div>
+
+  <div class="panel span-2">
+    <div class="panel-head">
+      <div><h3>最近学习记录</h3><p class="muted">最多展示 8 条</p></div>
+      <a class="link-more" href="{{ url_for('main.dashboard') }}">继续学习 →</a>
+    </div>
+    <div class="recent-table" id="recent-list"></div>
+  </div>
+
+  <div class="panel goal-report">
+    <div class="panel-head"><div><h3>今日目标</h3><p class="muted">每日 XP 进度</p></div></div>
+    <div id="today-goal"></div>
+    <a class="btn btn-soft btn-block" href="{{ url_for('main.profile') }}">修改每日目标</a>
+  </div>
+
+  <div class="panel achievement-teaser span-2">
+    <div class="panel-head"><div><h3>成就里程碑</h3><p class="muted">已解锁 {{ unlocked_count }}/{{ achievement_total }}</p></div></div>
+    <div class="teaser-big">{{ unlocked_count }}<span>枚徽章</span></div>
+    <a class="btn btn-soft btn-block" href="{{ url_for('main.achievements') }}">查看全部成就</a>
+  </div>
+</section>
+<div class="shell">
+  <noscript><p class="muted">学习图表需要启用 JavaScript。</p></noscript>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/progress.js') }}"></script>
+{% endblock %}

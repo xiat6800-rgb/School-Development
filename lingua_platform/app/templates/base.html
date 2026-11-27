@@ -1,0 +1,126 @@
+{% set lang_codes = {'en': 'EN', 'ja': 'JP', 'ko': 'KO'} %}
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LinguaFlow · 沉浸式多语种学习{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="description" content="LinguaFlow 多语种在线学习平台：英语、日语、韩语分级课程，单词记忆、语法练习、口语跟读、听力训练与学习进度追踪。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <div class="bg-aurora" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+    <span class="grid-glow"></span>
+  </div>
+
+  <header class="topbar" id="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="{{ url_for('main.index') }}" aria-label="LinguaFlow 首页">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+            <path d="M6 5h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-9l-6 5v-5H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M10 12h12M10 17h7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-text">Lingua<em>Flow</em></span>
+      </a>
+
+      <nav class="nav-links" id="nav-links">
+        <a href="{{ url_for('main.index') }}" class="{{ 'active' if request.endpoint == 'main.index' }}">首页</a>
+        <a href="{{ url_for('main.languages') }}" class="{{ 'active' if request.endpoint in ['main.languages', 'main.course', 'main.lesson'] }}">课程</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if request.endpoint == 'main.dashboard' }}">学习空间</a>
+          <a href="{{ url_for('main.progress') }}" class="{{ 'active' if request.endpoint == 'main.progress' }}">学习进度</a>
+        {% else %}
+          <a class="nav-login-mobile" href="{{ url_for('auth.login') }}">登录</a>
+        {% endif %}
+        <a href="{{ url_for('main.community') }}" class="{{ 'active' if request.endpoint in ['main.community', 'main.post_detail'] }}">社区</a>
+        <a href="{{ url_for('main.achievements') }}" class="{{ 'active' if request.endpoint == 'main.achievements' }}">成就</a>
+      </nav>
+
+      <div class="nav-actions">
+        {% if current_user.is_authenticated %}
+          <span class="xp-chip"><span class="xp-bolt">⚡</span>{{ current_user.total_xp|xp_comma }} <i>XP</i></span>
+          <div class="user-menu" data-user-menu>
+            <button class="avatar" style="--avatar: {{ current_user.avatar_color }}" aria-label="账户菜单" data-menu-toggle>
+              {{ current_user.initial }}
+            </button>
+            <div class="user-dropdown">
+              <div class="ud-head">
+                <span class="avatar avatar-sm" style="--avatar: {{ current_user.avatar_color }}">{{ current_user.initial }}</span>
+                <div>
+                  <strong>{{ current_user.display_name }}</strong>
+                  <small>Lv.{{ current_user.level }} · {{ current_user.level_name }}</small>
+                </div>
+              </div>
+              <a href="{{ url_for('main.profile') }}">个人中心</a>
+              <a href="{{ url_for('main.dashboard') }}">学习空间</a>
+              <a href="{{ url_for('main.achievements') }}">我的成就</a>
+              <a class="ud-exit" href="{{ url_for('auth.logout') }}">退出登录</a>
+            </div>
+          </div>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.login') }}">登录</a>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('auth.register') }}">免费开始</a>
+        {% endif %}
+        <button class="nav-toggle" id="nav-toggle" aria-label="打开菜单">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+            <span class="flash-dot"></span><span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+    <footer class="footer">
+      <div class="shell footer-inner">
+        <div class="footer-brand">
+          <span class="brand-mark brand-mark-sm">
+            <svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+              <path d="M6 5h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-9l-6 5v-5H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+              <path d="M10 12h12M10 17h7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <div>
+            <strong>LinguaFlow</strong>
+            <p>用世界的语言，打开更大的世界。</p>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="{{ url_for('main.languages') }}">课程体系</a>
+          <a href="{{ url_for('main.community') }}">学习社区</a>
+          <a href="{{ url_for('main.achievements') }}">成就系统</a>
+          <a href="{{ url_for('auth.register') }}">免费注册</a>
+        </div>
+        <p class="footer-copy">© {{ today.year }} LinguaFlow · 沉浸式多语种学习平台</p>
+      </div>
+    </footer>
+  {% endblock %}
+
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

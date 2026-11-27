@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} · LinguaFlow{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb shell">
+  <a href="{{ url_for('main.languages') }}">课程</a>
+  <span>/</span>
+  <a href="{{ url_for('main.languages') }}#{{ course.language.code }}">{{ course.language.name }}</a>
+  <span>/</span>
+  <span>{{ course.level_code }}</span>
+</nav>
+
+<section class="shell course-hero" style="--from:{{ course.language.gradient_from }}; --to:{{ course.language.gradient_to }}">
+  <div class="course-hero-copy">
+    <div class="course-hero-tags">
+      <span class="level-tag">{{ course.level_code }}</span>
+      <span class="course-status">{{ course.status_label }}</span>
+      {% if not unlocked %}<span class="tag-locked">🔒 未解锁</span>{% endif %}
+    </div>
+    <h1>{{ course.title }}</h1>
+    <p class="course-tagline">{{ course.tagline }}</p>
+    <p class="course-desc">{{ course.description }}</p>
+    <div class="course-hero-meta">
+      <span>{{ course.language.flag }} {{ course.language.name }}</span>
+      <span>📘 {{ course.lessons|length }} 节互动课</span>
+      <span>⏱ 约 {{ course.lessons|map(attribute='duration')|sum }} 分钟</span>
+      <span>⚡ 共 {{ course.lessons|map(attribute='xp_reward')|sum }} XP</span>
+    </div>
+    <div class="course-hero-actions">
+      {% if unlocked %}
+        {% if current_user.is_authenticated %}
+          {% if stats.total and stats.completed == stats.total %}
+            {% if next_course %}
+              <a class="btn btn-light btn-lg" href="{{ url_for('main.course', course_id=next_course.id) }}">已完成，前往 {{ next_course.level_code }} <span class="arrow">→</span></a>
+            {% else %}
+              <a class="btn btn-light btn-lg" href="{{ url_for('main.languages') }}">本级别已完成，探索其他语言 <span class="arrow">→</span></a>
+            {% endif %}
+          {% else %}
+            <a class="btn btn-light btn-lg" href="{{ url_for('main.lesson', lesson_id=next_lesson.id) }}">
+              {{ '继续学习' if stats.completed > 0 else '开始第一课' }} <span class="arrow">→</span>
+            </a>
+          {% endif %}
+        {% else %}
+          <a class="btn btn-light btn-lg" href="{{ url_for('auth.login', next=url_for('main.course', course_id=course.id)) }}">登录后开始学习 →</a>
+        {% endif %}
+      {% else %}
+        <span class="locked-note">完成上一级别的全部课程后解锁本课程</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="course-hero-progress">
+    <div class="hero-ring">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" class="ring-track"/>
+        <circle cx="60" cy="60" r="52" class="ring-value" style="stroke-dasharray: 326.7; stroke-dashoffset: {{ 326.7 - 326.7 * stats.percent / 100 }}"/>
+      </svg>
+      <div class="goal-label"><strong>{{ stats.percent }}%</strong><span>课程进度</span></div>
+    </div>
+    <p>{{ stats.completed }} / {{ stats.total }} 节课已完成</p>
+  </div>
+</section>
+
+<section class="shell course-layout">
+  <div class="course-main">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>课程内容</h3><p class="muted">四节课，覆盖单词、语法、听力与口语</p></div>
+        <span class="panel-badge">Level {{ course.level }}</span>
+      </div>
+      <div class="lesson-list">
+        {% for lesson in course.lessons %}
+          {% set prog = progress_map.get(lesson.id) %}
+          {% set meta = kind_meta[lesson.kind] %}
+          <a class="lesson-row {{ 'is-done' if prog and prog.completed }} {{ 'is-locked' if not unlocked }}"
+             href="{{ url_for('main.lesson', lesson_id=lesson.id) }}">
+            <span class="lesson-index">{{ '%02d'|format(lesson.order) }}</span>
+            <span class="lesson-icon">{{ meta.icon }}</span>
+            <div class="lesson-body">
+              <div class="lesson-title">
+                <strong>{{ lesson.title }}</strong>
+                {% if prog and prog.completed %}<span class="badge-done">已完成</span>{% endif %}
+              </div>
+              <span>{{ lesson.subtitle }}</span>
+            </div>
+            <div class="lesson-meta">
+              <span>⏱ {{ lesson.duration }} 分钟</span>
+              <span>⚡ {{ lesson.xp_reward }} XP</span>
+              {% if prog and prog.completed %}
+                <span class="lesson-score">最佳 {{ prog.best_score }} 分</span>
+              {% endif %}
+            </div>
+            <span class="lesson-arrow">{{ '→' if unlocked else '🔒' }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>语言进阶路径</h3><p class="muted">{{ course.language.name }} · 从入门到高阶</p></div></div>
+      <div class="level-path">
+        {% for item in siblings %}
+          <a class="level-step {{ 'is-current' if item.course.id == course.id }} {{ 'is-locked' if not item.unlocked }}"
+             href="{{ url_for('main.course', course_id=item.course.id) }}">
+            <span class="level-step-code">{{ item.course.level_code }}</span>
+            <strong>{{ item.course.title }}</strong>
+            <span class="level-step-sub">{{ item.course.subtitle }}</span>
+            <div class="meter"><span style="width: {{ item.stats.percent }}%"></span></div>
+            <small>{{ item.stats.completed }}/{{ item.stats.total }} 节{% if not item.unlocked %} · 🔒{% endif %}</small>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <aside class="course-side">
+    <div class="panel">
+      <h3 class="panel-title">本课亮点</h3>
+      <ul class="check-list">
+        <li>✅ 每节课 5-8 分钟，碎片时间可完成</li>
+        <li>✅ 单词闪卡 + 即时测验双阶段记忆</li>
+        <li>✅ 语音合成示范地道发音</li>
+        <li>✅ 跟读实时评分，记录口语进步</li>
+        <li>✅ 完成即获 XP，可解锁成就徽章</li>
+      </ul>
+    </div>
+    <div class="panel lang-mini-card" style="--from:{{ course.language.gradient_from }}; --to:{{ course.language.gradient_to }}">
+      <span class="language-flag">{{ course.language.flag }}</span>
+      <h4>{{ course.language.native_name }}</h4>
+      <p>{{ course.language.tagline }}</p>
+      <div class="lang-greeting">{{ course.language.greeting }}<small>{{ course.language.greeting_zh }}</small></div>
+    </div>
+  </aside>
+</section>
+{% endblock %}

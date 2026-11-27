@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}注册 · LinguaFlow{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+
+{% block content %}
+<div class="auth-shell shell">
+  <section class="auth-aside">
+    <span class="pill"><span class="pill-dot"></span>加入 LinguaFlow</span>
+    <h1>三分钟注册，<br><span class="gradient-text">开启沉浸式学习</span></h1>
+    <p>英语、日语、韩语任你选。完成课程攒经验、解锁级别、赢取成就徽章，还能在社区找到一起坚持的伙伴。</p>
+    <ul class="auth-points">
+      <li><span>📚</span>9 门分级课程，36 节互动课时</li>
+      <li><span>🎙️</span>浏览器内即可完成口语跟读评分</li>
+      <li><span>🧭</span>学习数据驱动的个性化推荐</li>
+      <li><span>🏆</span>12 枚成就徽章与连续学习激励</li>
+    </ul>
+  </section>
+
+  <section class="auth-card">
+    <h2>创建你的账号</h2>
+    <p class="auth-sub">注册即开始第一节体验课程，完全免费。</p>
+    <form method="post" class="form-stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field">
+        <span>用户名</span>
+        <input type="text" name="username" value="{{ username }}" placeholder="2-20 位字母、数字或中文" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span>邮箱</span>
+        <input type="email" name="email" value="{{ email }}" placeholder="you@example.com" autocomplete="email" required>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>密码</span>
+          <input type="password" name="password" placeholder="至少 6 位" autocomplete="new-password" required>
+        </label>
+        <label class="field">
+          <span>确认密码</span>
+          <input type="password" name="confirm" placeholder="再次输入" autocomplete="new-password" required>
+        </label>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">免费注册并开始</button>
+    </form>
+    <p class="auth-switch">已有账号？<a href="{{ url_for('auth.login') }}">直接登录</a></p>
+  </section>
+</div>
+{% endblock %}

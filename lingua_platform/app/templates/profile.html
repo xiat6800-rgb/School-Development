@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}个人中心 · LinguaFlow{% endblock %}
+
+{% block content %}
+<section class="shell page-head">
+  <div>
+    <span class="eyebrow">个人中心</span>
+    <h1>管理你的学习档案</h1>
+    <p class="muted">更新昵称、简介与每日目标，让学习节奏更适合你。</p>
+  </div>
+</section>
+
+<section class="shell profile-grid">
+  <aside class="profile-card panel">
+    <span class="avatar avatar-xl" style="--avatar: {{ current_user.avatar_color }}">{{ current_user.initial }}</span>
+    <h2>{{ current_user.display_name }}</h2>
+    <p class="profile-username">@{{ current_user.username }}</p>
+    <span class="level-badge">Lv.{{ current_user.level }} · {{ current_user.level_name }}</span>
+    <div class="meter profile-meter"><span style="width: {{ current_user.level_percent }}%"></span></div>
+    <p class="muted profile-bio">{{ current_user.bio or '还没有填写简介，介绍一下自己吧。' }}</p>
+    <div class="profile-mini-stats">
+      <div><strong>{{ stats.totals.xp|xp_comma }}</strong><span>XP</span></div>
+      <div><strong>{{ stats.totals.streak }}</strong><span>连续天数</span></div>
+      <div><strong>{{ stats.totals.lessons }}</strong><span>完成课时</span></div>
+    </div>
+    <small class="muted">加入于 {{ current_user.created_at.strftime('%Y年%m月%d日') }}</small>
+  </aside>
+
+  <div class="profile-main">
+    <div class="panel">
+      <div class="panel-head"><div><h3>编辑资料</h3><p class="muted">每日目标会用于计算「今日目标」进度</p></div></div>
+      <form method="post" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field-row">
+          <label class="field">
+            <span>昵称</span>
+            <input type="text" name="display_name" value="{{ current_user.display_name }}" maxlength="20" required>
+          </label>
+          <label class="field field-narrow">
+            <span>每日目标（XP）</span>
+            <input type="number" name="daily_goal" value="{{ current_user.daily_goal }}" min="10" max="200" step="5" required>
+          </label>
+        </div>
+        <label class="field">
+          <span>个人简介</span>
+          <textarea name="bio" rows="3" maxlength="200" placeholder="例如：日语 N4 冲刺中，每天 20 分钟。">{{ current_user.bio or '' }}</textarea>
+        </label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">保存修改</button>
+          <a class="btn btn-ghost" href="{{ url_for('main.dashboard') }}">返回学习空间</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>学习概览</h3><p class="muted">共 {{ total }} 枚成就，已解锁 {{ unlocked_count }} 枚</p></div>
+        <a class="link-more" href="{{ url_for('main.achievements') }}">全部成就 →</a>
+      </div>
+      <div class="overview-grid">
+        <div class="ov-item"><strong>{{ stats.totals.words }}</strong><span>掌握单词</span></div>
+        <div class="ov-item"><strong>{{ stats.totals.minutes }}</strong><span>学习分钟</span></div>
+        <div class="ov-item"><strong>{{ stats.totals.avg_score }}</strong><span>平均得分</span></div>
+        <div class="ov-item"><strong>{{ stats.today.xp }}</strong><span>今日 XP</span></div>
+      </div>
+      {% if unlocked %}
+        <div class="profile-achievements">
+          {% for row in unlocked %}
+            <span class="profile-ach" title="{{ row.achievement.description }}">{{ row.achievement.icon }}<i>{{ row.achievement.name }}</i></span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-note">完成第一节课即可点亮第一枚徽章。</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h3>学习目标建议</h3><p class="muted">根据你的数据生成</p></div></div>
+      <ul class="check-list">
+        {% if stats.totals.streak < 3 %}
+          <li>🔥 先把连续学习提升到 3 天，建立稳定的学习节奏。</li>
+        {% else %}
+          <li>🔥 已连续学习 {{ stats.totals.streak }} 天，保持这个势头！</li>
+        {% endif %}
+        {% if stats.totals.avg_score < 80 %}
+          <li>🔁 平均得分 {{ stats.totals.avg_score }}，建议先复习薄弱课程再解锁新级别。</li>
+        {% else %}
+          <li>🎯 平均得分 {{ stats.totals.avg_score }}，可以尝试挑战新的语言了。</li>
+        {% endif %}
+        {% if stats.today.xp < stats.today.goal %}
+          <li>⚡ 今日还差 {{ stats.today.goal - stats.today.xp }} XP 达成目标，完成一节课就够了。</li>
+        {% else %}
+          <li>🎉 今日目标已完成，给自己一点奖励吧。</li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

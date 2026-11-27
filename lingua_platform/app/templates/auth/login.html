@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}登录 · LinguaFlow{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+
+{% block content %}
+<div class="auth-shell shell">
+  <section class="auth-aside">
+    <span class="pill"><span class="pill-dot"></span>欢迎回来</span>
+    <h1>继续你的<br><span class="gradient-text">语言旅程</span></h1>
+    <p>今天的一小节课，就是明天的流利对话。保持连续学习，让进度条继续向前。</p>
+    <div class="auth-quotes">
+      <div class="auth-quote">
+        <span>“</span>
+        <p>每天 10 分钟，比周末突击 3 小时更有效。</p>
+      </div>
+      <div class="auth-quote">
+        <span>“</span>
+        <p>跟着读、跟着听，语感会在不知不觉中长出来。</p>
+      </div>
+    </div>
+    <div class="auth-flags">🇬🇧 🇯🇵 🇰🇷</div>
+  </section>
+
+  <section class="auth-card">
+    <h2>登录 LinguaFlow</h2>
+    <p class="auth-sub">使用用户名或邮箱登录，继续你的学习进度。</p>
+    <form method="post" class="form-stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field">
+        <span>用户名 / 邮箱</span>
+        <input type="text" name="identifier" value="{{ identifier }}" placeholder="例如 lily_en 或 lily@example.com" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span>密码</span>
+        <input type="password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
+      </label>
+      <label class="checkline">
+        <input type="checkbox" name="remember" value="1"><span>记住我</span>
+      </label>
+      <button class="btn btn-primary btn-block" type="submit">登录</button>
+    </form>
+    <p class="auth-switch">还没有账号？<a href="{{ url_for('auth.register') }}">免费注册</a></p>
+    <div class="demo-hint">
+      <strong>体验账号</strong>
+      <span>用户名 <code>lily_en</code> · 密码 <code>demo1234</code></span>
+    </div>
+  </section>
+</div>
+{% endblock %}
